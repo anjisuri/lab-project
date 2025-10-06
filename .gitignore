@@ -1,5 +1,8 @@
 # MATLAB data
-.mat
+*.mat
+
+#python data
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
