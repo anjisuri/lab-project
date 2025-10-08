@@ -6,11 +6,13 @@ data = loadmat('/Users/anji/Desktop/lab project/eye_tracking_data/patients.mat',
 
 eye = np.asarray(data['eyeTrck']).squeeze()
 
-for i, subject in enumerate(eye, start = 1):
+i = 1
+for subject in eye:
     if subject.ndim == 3:
         reshaped_data = np.transpose(subject, (1,2,0)).reshape(-1,3) # reorders axes (from channels, timepoints, trials to timepoints, trials, channels) 
         df = pd.DataFrame (reshaped_data, columns = ['x', 'y', 'pupil'])
         df.to_csv(f'/Users/anji/Desktop/lab project/python_data/patients/participant_{i}.csv', index = False)
+        i += 1
     else:
         print(f'Skipping row {i} (empty data) / wrong shape')
         continue
