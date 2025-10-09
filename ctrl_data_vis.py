@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
+from skimage import measure
+
 
 # for i in range(1,2):
 #df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{i}.csv')
@@ -37,7 +39,7 @@ plt.tight_layout()
 
 # saccade statistics (pre-erosion)
 threshold = 7
-saccades = ndimage.binary_dilation(speed > threshold, iterations = 5)
+saccades = ndimage.binary_dilation(speed > threshold, iterations = 6)
 saccades = ndimage.binary_erosion(saccades)
 labelled, n = ndimage.label(saccades)
 regions = ndimage.find_objects(labelled)
@@ -54,4 +56,3 @@ print(f'number of saccades = {n}')
 plt.plot(time,movement * max(speed))
 
 plt.show()
-
