@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy import ndimage
 from skimage import measure
 
-fs = 200 #Hz
+fs = 200 #sampling frequency, Hz
 
 # for i in range(1,2):
 # df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{i}.csv')
@@ -44,7 +44,7 @@ plt.tight_layout()
 threshold = 7
 saccades = ndimage.binary_dilation(speed > threshold, iterations = 6)   # how many iterations?
 saccades = ndimage.binary_erosion(saccades)
-labelled, n = ndimage.label(saccades)   # type: ignore[assignment]
+labelled, n = ndimage.label(saccades)
 regions = ndimage.find_objects(labelled)
 
 for i in regions: 
@@ -63,7 +63,7 @@ plt.plot(time,movement * max(speed))
 labels = measure.label(movement, connectivity = 1)
 props = measure.regionprops_table(
     labels[:, None],                 # make it 2-D for skimage
-    intensity_image=speed[:, None],  # so we can get mean/max speed per saccade
+    intensity_image=speed[:, None],  # to get mean/max speed per saccade
     properties=('label', 'area', 'bbox', 'mean_intensity', 'max_intensity')
 )
 
