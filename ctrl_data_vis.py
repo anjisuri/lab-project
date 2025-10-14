@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage
+from scipy import ndimage, stats
 from skimage import measure
 
 fs = 200 #sampling frequency, Hz
@@ -24,27 +24,42 @@ pupil = trial1['pupil']
 xdiff = np.diff(x) ** 2
 ydiff = np.diff(y) ** 2
 speed = np.sqrt(xdiff + ydiff)
+speed_z = stats.zscore(speed)
 time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
 
 plt.figure(figsize=(10,4))
 
-plt.plot(time, speed)
+plt.plot(time, speed_z)
 
-plt.xlim(0,2)
-plt.ylim(0)
 
 plt.title('Instantaneous eye movement speed')
 plt.xlabel('Time (s)')
-plt.ylabel('Speed (a.u.)')
+plt.ylabel('Speed, zscored (a.u.)')
 plt.tight_layout()
-
+# plt.show()
 
 # saccade statistics (pre-erosion)
 # binary array of movement vs not movement
-threshold = 7
-saccades = ndimage.binary_dilation(speed > threshold, iterations = 6)   # how many iterations?
-saccades = ndimage.binary_erosion(saccades)
-labelled, n = ndimage.label(saccades)
+
+# threshold = 3
+# saccades = ndimage.binary_dilation(speed_z > threshold, iterations = 1)   # each iteration 5ms merged
+# saccades = ndimage.binary_erosion(saccades)
+# labelled, n = ndimage.label(saccades)
+
+# --- saccade statistics (no post-erosion collapse) ---
+thr_z = 2                      # threshold in z-score units
+merge_ms = 10                  # merge stationary gaps shorter than this
+iters = max(1, int((merge_ms / 1000.0) * fs))   # samples to merge at fs Hz
+
+raw = speed_z > thr_z
+print('raw > thr_z:', int(raw.sum()))
+print('iters (samples merged):', iters)
+# merge short gaps between supra-threshold samples
+saccades = ndimage.binary_dilation(raw, iterations=iters)
+# optional gentle cleanup to remove isolated single-sample noise (commented by default)
+# saccades = ndimage.binary_opening(saccades)
+
+labelled, n = ndimage.label(saccades.astype(np.uint8))
 regions = ndimage.find_objects(labelled)
 
 for i in regions: 
@@ -56,14 +71,14 @@ for i in regions:
 movement = saccades
 print(f'number of saccades = {n}')
 
-plt.plot(time,movement * max(speed))
+plt.plot(time, movement*np.nanmax(speed_z))
 
-# plt.show()
+plt.show()
 
-labels = measure.label(movement, connectivity = 1)
+labels = measure.label(movement.astype(np.uint8), connectivity=1)
 props = measure.regionprops_table(
     labels[:, None],                 # make it 2-D for skimage
-    intensity_image=speed[:, None],  # to get mean/max speed per saccade
+    intensity_image=speed_z[:, None],  # to get mean/max speed per saccade
     properties=('label', 'area', 'bbox', 'mean_intensity', 'max_intensity')
 )
 
