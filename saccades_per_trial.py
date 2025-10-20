@@ -34,7 +34,7 @@ def analyse(participant, thr_z, merging_ms):
         plt.ylabel('Speed, zscored (a.u.)')
         plt.tight_layout()
 
-        # --- saccade statistics (no post-erosion collapse) ---
+        # --- saccade statistics ---
         iters = max(1, int((merging_ms / 1000.0) * fs))   # samples to merge at fs Hz
 
         raw = speed_z > thr_z

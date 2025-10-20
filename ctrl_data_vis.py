@@ -8,18 +8,21 @@ fs = 200 #sampling frequency, Hz
 
 # for i in range(1,2):
 # df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{i}.csv')
-df = pd.read_csv('/Users/anji/Desktop/lab project/python_data/controls/participant_1.csv')
 
-# plotting trial 1 (participant 1)
+x = 1
+trial = 58
+df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{x}.csv')
+
+# plotting specific trial
 
 samples = 1601
 trials = df.shape[0] // samples
 df['trial'] = np.repeat(np.arange(1, trials + 1), samples)
 
-trial1 = df[df['trial'] == 1]
-x = trial1['x']
-y = trial1['y']
-pupil = trial1['pupil']
+trial = df[df['trial'] == trial]
+x = trial['x']
+y = trial['y']
+pupil = trial['pupil']
 
 xdiff = np.diff(x) ** 2
 ydiff = np.diff(y) ** 2
@@ -47,7 +50,7 @@ plt.tight_layout()
 # labelled, n = ndimage.label(saccades)
 
 # --- saccade statistics (no post-erosion collapse) ---
-thr_z = 2                      # threshold in z-score units
+thr_z = 1.5                      # threshold in z-score units
 merge_ms = 10                  # merge stationary gaps shorter than this
 iters = max(1, int((merge_ms / 1000.0) * fs))   # samples to merge at fs Hz
 
