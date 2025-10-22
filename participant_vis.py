@@ -69,7 +69,7 @@ def vis(participant, thr_z, merging_ms, show_plot=False):
             'avg_duration_ms': avg_duration
         })
 
-        # Optional plot per trial (off by default)
+        # plot per trial (off by default)
         if show_plot:
             movement = saccades
             plt.figure(figsize=(10, 4))

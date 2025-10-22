@@ -86,3 +86,90 @@ def analyse(participant, thr_z, merging_ms):
 
         print(f"number of saccades = {len(stats_df)}")
         print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed']])
+
+# plotting non-zscored data for a single trial (to identify noise)
+def single_trial(participant, trial):
+    df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
+    fs = 200 #sampling frequency, Hz
+
+    samples = 1601
+    trials = df.shape[0] // samples
+    df['trial'] = np.repeat(np.arange(1, trials + 1), samples)
+
+    trial = df[df['trial'] == trial]
+    x = trial['x']
+    y = trial['y']
+    pupil = trial['pupil']
+
+    xdiff = np.diff(x) ** 2
+    ydiff = np.diff(y) ** 2
+    speed = np.sqrt(xdiff + ydiff)
+    time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
+
+    plt.figure(figsize=(10,4))
+
+    plt.plot(time, speed)
+
+
+    plt.title('Instantaneous eye movement speed')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Speed')
+    plt.tight_layout()
+    plt.show()
+
+def single_trial_z(participant, trial):
+    df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
+    fs = 200 #sampling frequency, Hz
+
+    samples = 1601
+    trials = df.shape[0] // samples
+    df['trial'] = np.repeat(np.arange(1, trials + 1), samples)
+
+    trial = df[df['trial'] == trial]
+    x = trial['x']
+    y = trial['y']
+    pupil = trial['pupil']
+
+    xdiff = np.diff(x) ** 2
+    ydiff = np.diff(y) ** 2
+    speed = np.sqrt(xdiff + ydiff)
+    speed_z = zscore(speed)
+    time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
+
+    plt.figure(figsize=(10,4))
+
+    plt.plot(time, speed_z)
+
+
+    plt.title('Instantaneous eye movement speed')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Speed, z-scored (a.u.)')
+    plt.tight_layout()
+    plt.show()
+
+# plotting pupil dilation for a single trial (to identify eye blinks)
+def pupil_dilation(participant, trial):
+    df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
+    fs = 200 #sampling frequency, Hz
+
+    samples = 1601
+    trials = df.shape[0] // samples
+    df['trial'] = np.repeat(np.arange(1, trials + 1), samples)
+
+    trial = df[df['trial'] == trial]
+    x = trial['x']
+    y = trial['y']
+    pupil = trial['pupil']
+
+    time = np.arange(len(pupil)) / fs  # seconds (fs = 200Hz)
+
+    plt.figure(figsize=(10,4))
+
+    plt.plot(time, pupil)
+
+
+    plt.title('Pupil dilation')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Pupil dilation (au)')
+    plt.tight_layout()
+    plt.show()
