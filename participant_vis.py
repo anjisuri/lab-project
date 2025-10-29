@@ -66,7 +66,8 @@ def vis(participant, thr_z, merging_ms, show_plot=False):
         summaries.append({
             'trial': int(i),
             'n_saccades': int(n),
-            'avg_duration_ms': avg_duration
+            'avg_duration_ms': avg_duration,
+            'speed_var': np.var(speed)
         })
 
         # plot per trial (off by default)
@@ -81,10 +82,10 @@ def vis(participant, thr_z, merging_ms, show_plot=False):
             plt.plot(time, movement * np.nanmax(speed_z))
             plt.show()
 
-    # After iterating all trials: concise output only
+    # after iterating all trials: concise output only
     summary_df = pd.DataFrame(summaries).sort_values('trial').reset_index(drop=True)
     print('\nPer-trial summary:')
     for r in summary_df.itertuples(index=False):
-        print(f"trial {r.trial}: saccades = {r.n_saccades}, avg duration = {r.avg_duration_ms:.1f} ms")
+        print(f"trial {r.trial}: saccades = {r.n_saccades}, avg duration = {r.avg_duration_ms:.1f} ms, speed var = {r.speed_var}")
 
     return summary_df
