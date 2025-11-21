@@ -148,15 +148,18 @@ def single_trial_z(participant, trial):
     plt.show()
 
 # plotting pupil dilation for a single trial (to identify eye blinks)
-def pupil_dilation(participant, trial):
+def pupil_dilation(participant, trial_number):
     df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
     fs = 200 #sampling frequency, Hz
 
     samples = 1601
     trials = df.shape[0] // samples
-    df['trial'] = np.repeat(np.arange(1, trials + 1), samples)
+    samples = 1601
 
-    trial = df[df['trial'] == trial]
+    start = (trial_number - 1) * samples
+    end = trial_number * samples
+
+    trial = df.iloc[start:end]
     x = trial['x']
     y = trial['y']
     pupil = trial['pupil']
@@ -168,7 +171,7 @@ def pupil_dilation(participant, trial):
     plt.plot(time, pupil)
 
 
-    plt.title('Pupil dilation')
+    plt.title(f'Pupil dilation: participant {participant} trial {trial_number}')
     plt.xlabel('Time (s)')
     plt.ylabel('Pupil dilation (au)')
     plt.tight_layout()
