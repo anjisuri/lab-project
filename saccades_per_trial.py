@@ -152,25 +152,18 @@ def pupil_dilation(participant, trial_number):
     df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
     fs = 200 #sampling frequency, Hz
 
+    # 'cutting' data down to desired trial
     samples = 1601
-    trials = df.shape[0] // samples
-    samples = 1601
-
     start = (trial_number - 1) * samples
     end = trial_number * samples
-
     trial = df.iloc[start:end]
-    x = trial['x']
-    y = trial['y']
+
     pupil = trial['pupil']
 
     time = np.arange(len(pupil)) / fs  # seconds (fs = 200Hz)
 
     plt.figure(figsize=(10,4))
-
     plt.plot(time, pupil)
-
-
     plt.title(f'Pupil dilation: participant {participant} trial {trial_number}')
     plt.xlabel('Time (s)')
     plt.ylabel('Pupil dilation (au)')
