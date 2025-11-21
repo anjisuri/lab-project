@@ -3,6 +3,7 @@
 *.csv
 *.fif
 *.dat
+*.npy
 
 # testing
 mne_test.ipynb
