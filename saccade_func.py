@@ -4,6 +4,31 @@ from scipy import ndimage, stats
 from skimage import measure
 import pandas as pd
 
+def trial_vis(participant, trial_number):
+    file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
+    data = np.load(file_path)  # shape: (channels, time, trials)
+    trial_idx = trial_number - 1
+    trial_data = data[:, :, trial_idx]
+    fs = 200  # sampling frequency Hz
+    samples = 1601
+
+    df = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil']) # transpose from (channels, time)
+    time = np.arange(samples) / fs
+
+    plt.figure(figsize = (10,4))
+    plt.subplot(2,1,1)
+    plt.plot(time, df['x'], label = 'x position')
+    plt.subplot(2,1,1)
+    plt.plot(time, df['y'], label = 'y position')
+    plt.legend(loc = 'upper right', ncol = 2)
+
+    plt.subplot(2,1,2)
+    plt.title('pupil dilation')
+    plt.plot(time, df['pupil'])
+    plt.tight_layout()
+
+    plt.show()
+
 def trial(participant, trial_number, show_plot=True, show_stats=True):
     # loading
     file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
@@ -89,6 +114,24 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
         stats_df['duration_ms'] = (stats_df['n_samples'] / fs) * 1000
         print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed']])
 
+    stdx = np.nanstd(x)
+    stdy = np.nanstd(y)
+    stdpup = np.nanstd(pupil)
+
+    qc = {
+    'too_many_blinks': np.mean(blink_mask) > 0.15,
+    'pupil_noise': stdpup > 3,
+    'flat_pupil': stdpup < 0.05,
+    'speed_noise': np.nanstd(speed_z) > 9,
+    'flat_x': stdx < 0.1,
+    'flat_y': stdy < 0.1,
+    'x_noise': stdx > 3,
+    'y_noise': stdy > 3,
+    }
+    
+    print(f'stdx = {stdx}, stdy = {stdy}, stdpup = {stdpup}')
+    return [reason for reason, flag in qc.items() if flag]
+
 def participant(participant):
     file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
     data = np.load(file_path)  # shape (channels, time, trials)
@@ -96,4 +139,7 @@ def participant(participant):
 
     for trial_num in range(1, n_trials+1):
         print(f"\n=== Trial {trial_num} ===")
-        trial(participant, trial_num, show_plot=False, show_stats=False)
+        qc = trial(participant, trial_num, show_plot=False, show_stats=False)
+        if len(qc) > 0: 
+            print(f"Trial {trial_num} rejected due to:", qc)
+            continue
