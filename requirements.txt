@@ -1,7 +1,6 @@
 pandas 
 numpy 
-matplotlib.pyplot
-scipy.ndimage
-scipy.stats
+matplotlib
+scipy
 mne
-skimage.measure
+scikit-image
