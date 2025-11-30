@@ -2,11 +2,14 @@ import mne
 import matplotlib.pyplot as plt
 import numpy as np
 from autoreject import get_rejection_threshold
-import os.path as op
+import os
+from pathlib import Path
 
+# Get MEG data directory relative to this script
+MEG_DATA_DIR = Path(__file__).parent
 
 # --- loading ---
-epo_path = '/Users/anji/Desktop/lab project/meg_analysis/Participant5/effMpStudyData_epo.fif'
+epo_path = MEG_DATA_DIR / 'Participant5' / 'effMpStudyData_epo.fif'
 epochs = mne.read_epochs(epo_path, preload = True)
 
 # --- sanity checks ---

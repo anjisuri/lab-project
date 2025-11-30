@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from config import get_control_file
 
 # plotting pupil dilation for a single trial (to identify eye blinks)
 def pupil_dilation(participant, trial_number):
@@ -7,7 +8,7 @@ def pupil_dilation(participant, trial_number):
     samples = 1601
 
     # load npy file for participant
-    file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
+    file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (3, time, trials)
 
     pupil_data = data[2]  # pupil is channel 2

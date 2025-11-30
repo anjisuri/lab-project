@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 from scipy import ndimage, stats
 from skimage import measure
 import pandas as pd
+from config import get_control_file
 
 def trial_vis(participant, trial_number):
-    file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
+    file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
     trial_idx = trial_number - 1
     trial_data = data[:, :, trial_idx]
@@ -31,7 +32,7 @@ def trial_vis(participant, trial_number):
 
 def trial(participant, trial_number, show_plot=True, show_stats=True):
     # loading
-    file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
+    file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
     trial_idx = trial_number - 1
     trial_data = data[:, :, trial_idx]
@@ -119,21 +120,22 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
     stdpup = np.nanstd(pupil)
 
     qc = {
-    'too_many_blinks': np.mean(blink_mask) > 0.15,
-    'pupil_noise': stdpup > 3,
+    'too_many_blinks': np.mean(blink_mask) > 0.12,  # Stricter: 12% instead of 15%
+    'pupil_noise': stdpup > 1.5,  # Much stricter: catches high variability
     'flat_pupil': stdpup < 0.05,
     'speed_noise': np.nanstd(speed_z) > 9,
     'flat_x': stdx < 0.1,
     'flat_y': stdy < 0.1,
-    'x_noise': stdx > 3,
-    'y_noise': stdy > 3,
+    'x_noise': stdx > 2.5,  # Slightly stricter for position noise
+    'y_noise': stdy > 2.5,  # Slightly stricter for position noise
+    'excessive_position_variability': (stdx > 2.0 or stdy > 2.0),  # New: catch unstable tracking
     }
     
-    print(f'stdx = {stdx}, stdy = {stdy}, stdpup = {stdpup}')
+    print(f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, blink% = {np.mean(blink_mask)*100:.1f}%')
     return [reason for reason, flag in qc.items() if flag]
 
 def participant(participant):
-    file_path = f'/Users/anji/Desktop/lab project/EyeData/controls/ctrl_{participant}.npy'
+    file_path = get_control_file(participant)
     data = np.load(file_path)  # shape (channels, time, trials)
     n_trials = data.shape[2]
 
