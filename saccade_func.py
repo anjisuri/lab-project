@@ -124,43 +124,64 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
         plt.plot(time, movement_filtered * np.nanmax(speed_z))
         plt.show()
 
+    stats_df['end_idx'] = stats_df['end_idx_exclusive'] - 1
+    stats_df['start_s'] = stats_df['start_idx'] / fs
+    stats_df['end_s'] = stats_df['end_idx'] / fs
+    stats_df['duration_ms'] = (stats_df['n_samples'] / fs) * 1000
+
     if show_stats:
-        stats_df['end_idx'] = stats_df['end_idx_exclusive'] - 1
-        stats_df['start_s'] = stats_df['start_idx'] / fs
-        stats_df['end_s'] = stats_df['end_idx'] / fs
-        stats_df['duration_ms'] = (stats_df['n_samples'] / fs) * 1000
         print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed', 'too_short', 'too_long']])
+    
+    # create valid df for averaging in participant function
+    valid_stats = stats_df.loc[~(stats_df['too_short'] | stats_df['too_long']), ['duration_ms','mean_speed','max_speed']]
+
+    trial_rate = len(valid_stats) / (samples / fs)
 
     stdx = np.nanstd(x)
     stdy = np.nanstd(y)
     stdpup = np.nanstd(pupil)
-    missing_ratio = df_clean.isna().any(axis=1).mean()
     pupil_jitter = np.nanstd(np.diff(pupil))
     speed_peak = np.nanpercentile(np.abs(speed_z), 99)
 
     qc = {
-        'too_many_blinks': np.mean(blink_mask) > 0.2,
-        'excessive_missing': missing_ratio > 0.2,
+        'too_many_blinks': np.mean(blink_mask) > 0.5,
         'pupil_noise': pupil_jitter > 1.0,
-        'flat_pupil': stdpup < 0.1,
+        'flat_pupil': stdpup == 0,
         'speed_noise': speed_peak > 6,
-        'flat_x': stdx < 0.25,
-        'flat_y': stdy < 0.25,
+        'flat_x': stdx == 0,
+        'flat_y': stdy == 0,
         'x_noise': stdx > 4,
         'y_noise': stdy > 4,
     }
     
-    print(f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, blink% = {np.mean(blink_mask)*100:.1f}%')
-    return [reason for reason, flag in qc.items() if flag]
+    print(f'rate = {trial_rate:.2f}, stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, blink% = {np.mean(blink_mask)*100:.1f}%')
+    return [reason for reason, flag in qc.items() if flag], valid_stats, trial_rate
 
 def participant(participant):
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape (channels, time, trials)
     n_trials = data.shape[2]
 
+    rejected = 0
+    rates = []
+    agg = {'duration_ms': [], 'mean_speed': [], 'max_speed': []}
     for trial_num in range(1, n_trials+1):
         print(f"\n=== Trial {trial_num} ===")
-        qc = trial(participant, trial_num, show_plot=False, show_stats=False)
+        qc, stats, rate = trial(participant, trial_num, show_plot=False, show_stats=False)
         if len(qc) > 0: 
             print(f"Trial {trial_num} rejected due to:", qc)
+            rejected += 1
             continue
+        else:
+            rates.append(rate)
+            agg['duration_ms'].extend(stats['duration_ms'])
+            agg['mean_speed'].extend(stats['mean_speed'])
+            agg['max_speed'].extend(stats['max_speed'])
+
+    mean_rate = np.mean(rates)
+    mean_duration = np.nanmean(agg['duration_ms'])
+    mean_mean_speed = np.nanmean(agg['mean_speed'])
+    mean_max_speed = np.nanmean(agg['max_speed'])
+    print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+
+    print(f"\nTrials rejected: {rejected} / {n_trials}")
