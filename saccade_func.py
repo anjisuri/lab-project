@@ -118,17 +118,20 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
     stdx = np.nanstd(x)
     stdy = np.nanstd(y)
     stdpup = np.nanstd(pupil)
+    missing_ratio = df_clean.isna().any(axis=1).mean()
+    pupil_jitter = np.nanstd(np.diff(pupil))
+    speed_peak = np.nanpercentile(np.abs(speed_z), 99)
 
     qc = {
-    'too_many_blinks': np.mean(blink_mask) > 0.12,  # Stricter: 12% instead of 15%
-    'pupil_noise': stdpup > 1.5,  # Much stricter: catches high variability
-    'flat_pupil': stdpup < 0.05,
-    'speed_noise': np.nanstd(speed_z) > 9,
-    'flat_x': stdx < 0.1,
-    'flat_y': stdy < 0.1,
-    'x_noise': stdx > 2.5,  # Slightly stricter for position noise
-    'y_noise': stdy > 2.5,  # Slightly stricter for position noise
-    'excessive_position_variability': (stdx > 2.0 or stdy > 2.0),  # New: catch unstable tracking
+        'too_many_blinks': np.mean(blink_mask) > 0.2,
+        'excessive_missing': missing_ratio > 0.2,
+        'pupil_noise': pupil_jitter > 1.0,
+        'flat_pupil': stdpup < 0.1,
+        'speed_noise': speed_peak > 6,
+        'flat_x': stdx < 0.25,
+        'flat_y': stdy < 0.25,
+        'x_noise': stdx > 4,
+        'y_noise': stdy > 4,
     }
     
     print(f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, blink% = {np.mean(blink_mask)*100:.1f}%')
