@@ -79,17 +79,7 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
     raw = speed_z > thr_z
     
     # merge short gaps between supra-threshold samples
-    saccades = ndimage.binary_dilation(raw, iterations=iters)
-
-    labelled, n = ndimage.label(saccades.astype(np.uint8))
-
-    movement = saccades
-    print(f'number of saccades = {n}')
-
-    if show_plot:
-        plt.plot(time, movement*np.nanmax(speed_z))
-
-        plt.show()
+    movement = ndimage.binary_dilation(raw, iterations=iters)
 
     labels = measure.label(movement.astype(np.uint8), connectivity=1)
     props = measure.regionprops_table(
@@ -108,12 +98,38 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
         }
     )
 
+    stats_df = stats_df[stats_df['n_samples'] >= 0.01 * fs].copy()  # >=10 ms at fs=200
+
+    min_samples = int(np.ceil(0.01*fs))
+    max_samples = int(np.floor(0.090 * fs))  # 90 ms gate
+
+    stats_df['too_short'] = stats_df['n_samples'] < min_samples
+    stats_df['too_long'] = stats_df['n_samples'] > max_samples
+
+    # keep all rows for printing, but only longer ones in the mask/plot
+    keep_labels = stats_df.loc[~(stats_df['too_short'] | stats_df['too_long']), 'label'].to_numpy()
+    movement_filtered = np.isin(labels, keep_labels)
+
+    kept_mask = ~(stats_df['too_short'] | stats_df['too_long'])
+    final_count = kept_mask.sum()
+    removed_counts = {
+        'too_short': int(stats_df['too_short'].sum()),
+        'too_long': int(stats_df['too_long'].sum()),
+    }
+    print(f'final saccade count = {final_count}')
+    print('removed:', removed_counts)
+
+    if show_plot:
+        plt.plot(time, movement * np.nanmax(speed_z),'g--', linewidth = '0.75')
+        plt.plot(time, movement_filtered * np.nanmax(speed_z))
+        plt.show()
+
     if show_stats:
         stats_df['end_idx'] = stats_df['end_idx_exclusive'] - 1
         stats_df['start_s'] = stats_df['start_idx'] / fs
         stats_df['end_s'] = stats_df['end_idx'] / fs
         stats_df['duration_ms'] = (stats_df['n_samples'] / fs) * 1000
-        print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed']])
+        print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed', 'too_short', 'too_long']])
 
     stdx = np.nanstd(x)
     stdy = np.nanstd(y)
