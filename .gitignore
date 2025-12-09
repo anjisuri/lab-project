@@ -4,6 +4,7 @@
 *.fif
 *.dat
 *.npy
+EyeData
 
 # testing
 mne_test.ipynb

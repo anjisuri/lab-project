@@ -4,6 +4,7 @@ from scipy import ndimage, stats
 from skimage import measure
 import pandas as pd
 from config import get_control_file
+import os
 
 def trial_vis(participant, trial_number):
     file_path = get_control_file(participant)
@@ -30,7 +31,7 @@ def trial_vis(participant, trial_number):
 
     plt.show()
 
-def trial(participant, trial_number, show_plot=True, show_stats=True):
+def trial(participant, trial_number, show_plot=True, show_stats=True, final=True):
     # loading
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
@@ -116,48 +117,69 @@ def trial(participant, trial_number, show_plot=True, show_stats=True):
         'too_short': int(stats_df['too_short'].sum()),
         'too_long': int(stats_df['too_long'].sum()),
     }
-    print(f'final saccade count = {final_count}')
-    print('removed:', removed_counts)
-
-    if show_plot:
-        plt.plot(time, movement * np.nanmax(speed_z),'g--', linewidth = '0.75')
-        plt.plot(time, movement_filtered * np.nanmax(speed_z))
-        plt.show()
+    if final:
+        print(f'final saccade count = {final_count}')
+        print('removed:', removed_counts)
 
     stats_df['end_idx'] = stats_df['end_idx_exclusive'] - 1
     stats_df['start_s'] = stats_df['start_idx'] / fs
     stats_df['end_s'] = stats_df['end_idx'] / fs
     stats_df['duration_ms'] = (stats_df['n_samples'] / fs) * 1000
 
-    if show_stats:
-        print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed', 'too_short', 'too_long']])
+    # guard for lack of valid saccades
+    has_data = np.isfinite(speed_z).any() and movement_filtered.any()
+    if show_plot and has_data:
+        peak = np.nanmax(speed_z)
+        plt.plot(time, movement * peak, 'g--', linewidth=0.75)
+        plt.plot(time, movement_filtered * peak)
+        plt.show()
+
+    if show_stats and not stats_df.empty:
+        print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed','too_short','too_long']])
     
     # create valid df for averaging in participant function
     valid_stats = stats_df.loc[~(stats_df['too_short'] | stats_df['too_long']), ['duration_ms','mean_speed','max_speed']]
 
     trial_rate = len(valid_stats) / (samples / fs)
 
-    stdx = np.nanstd(x)
-    stdy = np.nanstd(y)
-    stdpup = np.nanstd(pupil)
-    pupil_jitter = np.nanstd(np.diff(pupil))
-    speed_peak = np.nanpercentile(np.abs(speed_z), 99)
+    no_saccades = len(valid_stats) == 0
 
-    qc = {
-        'too_many_blinks': np.mean(blink_mask) > 0.5,
-        'pupil_noise': pupil_jitter > 1.0,
-        'flat_pupil': stdpup == 0,
-        'speed_noise': speed_peak > 6,
-        'flat_x': stdx == 0,
-        'flat_y': stdy == 0,
-        'x_noise': stdx > 4,
-        'y_noise': stdy > 4,
-    }
+    if not no_saccades:
+        stdx = np.nanstd(x)
+        stdy = np.nanstd(y)
+        stdpup = np.nanstd(pupil)
+        pupil_jitter = np.nanstd(np.diff(pupil))
+        # speed_peak = np.nanpercentile(np.abs(speed_z), 99)
+
+        qc = {
+            'too_many_blinks': np.mean(blink_mask) > 0.5,
+            'pupil_noise': pupil_jitter > 1.0,
+            'flat_pupil': stdpup == 0,
+            # 'speed_noise': speed_peak > 6,
+            'flat_x': stdx < 0.1,
+            'flat_y': stdy < 0.1,
+            'x_noise': stdx > 4,
+            'y_noise': stdy > 4,
+            'no_saccades': False,
+        }
+    else:
+        qc = {
+            'no_saccades': True,
+        }
     
-    print(f'rate = {trial_rate:.2f}, stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, blink% = {np.mean(blink_mask)*100:.1f}%')
+    if show_stats & len(valid_stats) > 0:
+        mean_duration = np.nanmean(valid_stats['duration_ms'])
+        mean_speed = np.nanmean(valid_stats['mean_speed'])
+        max_speed = np.nanmean(valid_stats['max_speed'])
+        print(
+            f'rate = {trial_rate:.2f}, mean_duration = {mean_duration:.2f}ms, '
+            f'mean_speed = {mean_speed:.2f}, max_speed = {max_speed:.2f}, '
+            f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, '
+            f'blink% = {np.mean(blink_mask)*100:.1f}%'
+        )
     return [reason for reason, flag in qc.items() if flag], valid_stats, trial_rate
 
-def participant(participant):
+def participant(participant, show_stats=True, final=True):
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape (channels, time, trials)
     n_trials = data.shape[2]
@@ -166,10 +188,10 @@ def participant(participant):
     rates = []
     agg = {'duration_ms': [], 'mean_speed': [], 'max_speed': []}
     for trial_num in range(1, n_trials+1):
-        print(f"\n=== Trial {trial_num} ===")
-        qc, stats, rate = trial(participant, trial_num, show_plot=False, show_stats=False)
+        if show_stats: print(f"\n=== Trial {trial_num} ===")
+        qc, stats, rate = trial(participant, trial_num, show_plot=False, show_stats=False, final=final)
         if len(qc) > 0: 
-            print(f"Trial {trial_num} rejected due to:", qc)
+            if show_stats: print(f"Trial {trial_num} rejected due to:", qc)
             rejected += 1
             continue
         else:
@@ -178,10 +200,11 @@ def participant(participant):
             agg['mean_speed'].extend(stats['mean_speed'])
             agg['max_speed'].extend(stats['max_speed'])
 
-    mean_rate = np.mean(rates)
-    mean_duration = np.nanmean(agg['duration_ms'])
-    mean_mean_speed = np.nanmean(agg['mean_speed'])
-    mean_max_speed = np.nanmean(agg['max_speed'])
-    print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+    if len(stats) > 0:
+        mean_rate = np.mean(rates)
+        mean_duration = np.nanmean(agg['duration_ms'])
+        mean_mean_speed = np.nanmean(agg['mean_speed'])
+        mean_max_speed = np.nanmean(agg['max_speed'])
+        print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
 
     print(f"\nTrials rejected: {rejected} / {n_trials}")
