@@ -4,7 +4,6 @@ from scipy import ndimage, stats
 from skimage import measure
 import pandas as pd
 from config import get_control_file
-import os
 
 def trial_vis(participant, trial_number):
     file_path = get_control_file(participant)
@@ -19,14 +18,17 @@ def trial_vis(participant, trial_number):
 
     plt.figure(figsize = (10,4))
     plt.subplot(2,1,1)
+    plt.title('Eye movement')
     plt.plot(time, df['x'], label = 'x position')
     plt.subplot(2,1,1)
     plt.plot(time, df['y'], label = 'y position')
+    plt.xlabel('Time (s)')
     plt.legend(loc = 'upper right', ncol = 2)
 
     plt.subplot(2,1,2)
-    plt.title('pupil dilation')
+    plt.title('Pupil dilation')
     plt.plot(time, df['pupil'])
+    plt.xlabel('Time (s)')
     plt.tight_layout()
 
     plt.show()
@@ -200,11 +202,16 @@ def participant(participant, show_stats=True, final=True):
             agg['mean_speed'].extend(stats['mean_speed'])
             agg['max_speed'].extend(stats['max_speed'])
 
-    if len(stats) > 0:
+    if rates and agg['duration_ms']:
         mean_rate = np.mean(rates)
         mean_duration = np.nanmean(agg['duration_ms'])
         mean_mean_speed = np.nanmean(agg['mean_speed'])
         mean_max_speed = np.nanmean(agg['max_speed'])
         print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+    else:
+        mean_rate = mean_duration = mean_max_speed = mean_mean_speed = np.nan
+        print("\nNo valid saccades across trials (all rejected or empty).")
 
     print(f"\nTrials rejected: {rejected} / {n_trials}")
+
+    return mean_rate, mean_duration, mean_mean_speed, mean_max_speed
