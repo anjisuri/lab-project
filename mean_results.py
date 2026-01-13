@@ -35,19 +35,20 @@ def con_means(show_plots=True):
             ("Mean Rate", rates),
             ("Mean Duration", durations),
             ("Mean Speed", mean_speeds),
-            ("Max Speed", max_speeds)
+            ("Max Speed", max_speeds),
         ]
 
-        for title, data in plots:
-            plt.figure(figsize=(6,4))
-            plt.plot(valid, data, marker="o")
-            plt.title(title)
-            plt.xlabel("Participant")
-            plt.ylabel(title)
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        for ax, (title, data) in zip(axes.ravel(), plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
             for p in invalid:
-                plt.axvline(p, ls='--', color = 'r', lw = '0.5')
-            plt.tight_layout()
-            plt.show()
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
     
     return {
         "rates": np.array(rates),
@@ -86,19 +87,20 @@ def pat_means(show_plots=True):
             ("Mean Rate", rates),
             ("Mean Duration", durations),
             ("Mean Speed", mean_speeds),
-            ("Max Speed", max_speeds)
+            ("Max Speed", max_speeds),
         ]
 
-        for title, data in plots:
-            plt.figure(figsize=(6,4))
-            plt.plot(valid, data, marker="o")
-            plt.title(title)
-            plt.xlabel("Participant")
-            plt.ylabel(title)
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        for ax, (title, data) in zip(axes.ravel(), plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
             for p in invalid:
-                plt.axvline(p, ls='--', color = 'r', lw = '0.5')
-            plt.tight_layout()
-            plt.show()
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
     
     return {
         "rates": np.array(rates),
