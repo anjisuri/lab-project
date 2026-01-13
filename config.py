@@ -9,12 +9,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
 # Define data directories
-DATA_DIR = PROJECT_ROOT / 'EyeData'
-CONTROLS_DIR = DATA_DIR / 'controls'
-PATIENTS_DIR = DATA_DIR / 'patients'
+EYE_DIR = PROJECT_ROOT / 'EyeData'
+CONTROLS_DIR = EYE_DIR / 'controls'
+PATIENTS_DIR = EYE_DIR / 'patients'
 
 # MEG analysis directory
-MEG_DIR = PROJECT_ROOT / 'meg_analysis'
+MEG_DIR = PROJECT_ROOT / 'meg_data'
+MEG_CTRLS = MEG_DIR / 'controls'
+MEG_PAT = MEG_DIR / 'patients'
 
 def get_control_file(participant):
     """Get path to control participant data file"""
@@ -23,3 +25,11 @@ def get_control_file(participant):
 def get_patient_file(participant):
     """Get path to patient data file"""
     return PATIENTS_DIR / f'pat_{participant}.npy'
+
+def get_meg_ctrl(participant):
+    """Get path to control participant data file"""
+    return MEG_CTRLS / f'meg_ctrl_{participant}.npy'
+
+def get_meg_pat(participant):
+    """Get path to patient data file"""
+    return MEG_PAT / f'meg_pat_{participant}.npy'

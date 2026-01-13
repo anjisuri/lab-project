@@ -5,6 +5,7 @@
 *.dat
 *.npy
 EyeData
+meg_data
 
 # testing
 mne_test.ipynb
