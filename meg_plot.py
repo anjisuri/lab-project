@@ -24,8 +24,8 @@ for i in range(trial_count):
     axes[i, 1].plot(t, right[i])
     axes[i, 1].set_title(f"{group} p{participant} trial {i + 1} right")
 
-axes[-1, 0].set_xlabel("Time (s)")
-axes[-1, 1].set_xlabel("Time (s)")
+axes[-1, 0].set_xlabel("time (s)")
+axes[-1, 1].set_xlabel("time (s)")
 
 plt.tight_layout()
 plt.show()
