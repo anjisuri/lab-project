@@ -108,3 +108,32 @@ def pat_means(show_plots=True):
         "mean_speeds": np.array(mean_speeds),
         "max_speeds": np.array(max_speeds),
     }
+
+def hists(show_plots=True, bins=20):
+    controls = con_means(show_plots=False)
+    patients = pat_means(show_plots=False)
+
+    if show_plots:
+        plots = [
+            ("Mean Rate", "rates"),
+            ("Mean Duration", "durations"),
+            ("Mean Speed", "mean_speeds"),
+            ("Max Speed", "max_speeds"),
+        ]
+
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        for ax, (title, key) in zip(axes.ravel(), plots):
+            ax.hist(controls[key], bins=bins, alpha=0.6, label="Controls")
+            ax.hist(patients[key], bins=bins, alpha=0.6, label="Patients")
+            ax.set_title(title)
+            ax.set_xlabel(title)
+            ax.set_ylabel("Count")
+            ax.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    return {
+        "controls": controls,
+        "patients": patients,
+    }

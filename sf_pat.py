@@ -140,7 +140,10 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
         print(stats_df[['label','start_s','end_s','duration_ms','mean_speed','max_speed','too_short','too_long']])
     
     # create valid df for averaging in participant function
-    valid_stats = stats_df.loc[~(stats_df['too_short'] | stats_df['too_long']), ['duration_ms','mean_speed','max_speed']]
+    valid_stats = stats_df.loc[
+        ~(stats_df['too_short'] | stats_df['too_long']),
+        ['start_idx', 'end_idx', 'start_s', 'end_s', 'duration_ms', 'mean_speed', 'max_speed'],
+    ]
 
     trial_rate = len(valid_stats) / (samples / fs)
 
