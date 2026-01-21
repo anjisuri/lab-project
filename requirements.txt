@@ -4,3 +4,4 @@ matplotlib
 scipy
 mne
 scikit-image
+statsmodels

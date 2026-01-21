@@ -184,22 +184,39 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
         )
     return [reason for reason, flag in qc.items() if flag], valid_stats, trial_rate
 
-def participant(participant, show_stats=True, final=True):
+def participant(participant, show_stats=True, final=True, time_window=None):
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape (channels, time, trials)
     n_trials = data.shape[2]
+    fs = 200
+    trial_len_s = data.shape[1] / fs
 
     rejected = 0
     rates = []
     agg = {'duration_ms': [], 'mean_speed': [], 'max_speed': []}
     for trial_num in range(1, n_trials+1):
         if show_stats: print(f"\n=== Trial {trial_num} ===")
-        qc, stats, rate = trial(participant, trial_num, show_plot=False, show_stats=False, final=final)
+        qc, stats, _ = trial(participant, trial_num, show_plot=False, show_stats=False, final=final)
         if len(qc) > 0: 
             if show_stats: print(f"Trial {trial_num} rejected due to:", qc)
             rejected += 1
             continue
         else:
+            if time_window is not None:
+                start_s, end_s = time_window
+                start_s = max(0.0, float(start_s))
+                end_s = min(trial_len_s, float(end_s))
+                window_len = end_s - start_s
+                if window_len > 0:
+                    stats = stats.loc[
+                        (stats['start_s'] >= start_s) & (stats['end_s'] <= end_s)
+                    ]
+                    rate = len(stats) / window_len
+                else:
+                    rate = np.nan
+            else:
+                rate = len(stats) / trial_len_s
+
             rates.append(rate)
             agg['duration_ms'].extend(stats['duration_ms'])
             agg['mean_speed'].extend(stats['mean_speed'])
@@ -210,11 +227,19 @@ def participant(participant, show_stats=True, final=True):
         mean_duration = np.nanmean(agg['duration_ms'])
         mean_mean_speed = np.nanmean(agg['mean_speed'])
         mean_max_speed = np.nanmean(agg['max_speed'])
-        print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+        if show_stats:
+            if time_window is not None:
+                start_s, end_s = time_window
+                window_label = f"{start_s}-{end_s}s"
+                print(f'\n[{window_label}] mean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+            else:
+                print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
     else:
         mean_rate = mean_duration = mean_max_speed = mean_mean_speed = np.nan
-        print("\nNo valid saccades across trials (all rejected or empty).")
+        if show_stats:
+            print("\nNo valid saccades across trials (all rejected or empty).")
 
-    print(f"\nTrials rejected: {rejected} / {n_trials}")
+    if show_stats:
+        print(f"\nTrials rejected: {rejected} / {n_trials}")
 
     return mean_rate, mean_duration, mean_mean_speed, mean_max_speed
