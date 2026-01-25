@@ -4,6 +4,8 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import pandas as pd
 
+# SACCADE STATS
+
 controls = con_means(show_plots=False)
 patients = pat_means(show_plots=False)
 
@@ -18,6 +20,9 @@ for metric in metrics:
         continue
     result = stats.ttest_rel(control_vals[:length], patient_vals[:length], nan_policy="omit")
     print(f"\n{metric}: {result}")
+
+
+# MEG STATS
 
 def anova(DV):
 
