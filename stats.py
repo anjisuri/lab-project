@@ -9,7 +9,7 @@ import pandas as pd
 controls = con_means(show_plots=False)
 patients = pat_means(show_plots=False)
 
-metrics = ["rates", "durations", "mean_speeds", "max_speeds"]
+metrics = ["rates", "durations", "mean_speeds", "max_speeds", "fixation_rates", "fixation_durations"]
 
 for metric in metrics:
     control_vals = controls[metric]

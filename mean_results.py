@@ -14,11 +14,13 @@ def con_means(show_plots=True):
     durations = []
     mean_speeds = []
     max_speeds = []
+    fixation_rates = []
+    fixation_durations = []
     valid = []
     invalid = []
 
     for p in range(1, n + 1):
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed = sf_con.participant(
+        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False
         )
         if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
@@ -29,6 +31,8 @@ def con_means(show_plots=True):
         durations.append(mean_duration)
         mean_speeds.append(mean_mean_speed)
         max_speeds.append(mean_max_speed)
+        fixation_rates.append(mean_fix_rate)
+        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -49,12 +53,46 @@ def con_means(show_plots=True):
 
         plt.tight_layout()
         plt.show()
+
+        fixation_plots = [
+            ("Fixation Rate", "fixation_rates"),
+            ("Fixation Duration", "fixation_durations"),
+        ]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, (title, key) in zip(axes.ravel(), fixation_plots):
+            ax.hist(controls[key], bins=bins, alpha=0.6, label="Controls")
+            ax.hist(patients[key], bins=bins, alpha=0.6, label="Patients")
+            ax.set_title(title)
+            ax.set_xlabel(title)
+            ax.set_ylabel("Count")
+            ax.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        fixation_plots = [
+            ("Fixation Rate", fixation_rates),
+            ("Fixation Duration", fixation_durations),
+        ]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, (title, data) in zip(axes.ravel(), fixation_plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
+            for p in invalid:
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
     
     return {
         "rates": np.array(rates),
         "durations": np.array(durations),
         "mean_speeds": np.array(mean_speeds),
         "max_speeds": np.array(max_speeds),
+        "fixation_rates": np.array(fixation_rates),
+        "fixation_durations": np.array(fixation_durations),
     }
 
 def pat_means(show_plots=True):
@@ -66,11 +104,13 @@ def pat_means(show_plots=True):
     durations = []
     mean_speeds = []
     max_speeds = []
+    fixation_rates = []
+    fixation_durations = []
     valid = []
     invalid = []
 
     for p in range(1, n + 1):
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed = sf_pat.participant(
+        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False
         )
         if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
@@ -81,6 +121,8 @@ def pat_means(show_plots=True):
         durations.append(mean_duration)
         mean_speeds.append(mean_mean_speed)
         max_speeds.append(mean_max_speed)
+        fixation_rates.append(mean_fix_rate)
+        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -101,12 +143,30 @@ def pat_means(show_plots=True):
 
         plt.tight_layout()
         plt.show()
+
+        fixation_plots = [
+            ("Fixation Rate", fixation_rates),
+            ("Fixation Duration", fixation_durations),
+        ]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, (title, data) in zip(axes.ravel(), fixation_plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
+            for p in invalid:
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
     
     return {
         "rates": np.array(rates),
         "durations": np.array(durations),
         "mean_speeds": np.array(mean_speeds),
         "max_speeds": np.array(max_speeds),
+        "fixation_rates": np.array(fixation_rates),
+        "fixation_durations": np.array(fixation_durations),
     }
 
 def _mean_or_nan(values):
@@ -122,12 +182,14 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
     durations = []
     mean_speeds = []
     max_speeds = []
+    fixation_rates = []
+    fixation_durations = []
     valid = []
     invalid = []
     window_label = f"{start_s}-{end_s}s"
 
     for p in range(1, n + 1):
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed = sf_con.participant(
+        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )
         if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
@@ -138,6 +200,8 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
         durations.append(mean_duration)
         mean_speeds.append(mean_mean_speed)
         max_speeds.append(mean_max_speed)
+        fixation_rates.append(mean_fix_rate)
+        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -159,12 +223,30 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
         plt.tight_layout()
         plt.show()
 
+        fixation_plots = [
+            (f"Fixation Rate ({window_label})", fixation_rates),
+            (f"Fixation Duration ({window_label})", fixation_durations),
+        ]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, (title, data) in zip(axes.ravel(), fixation_plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
+            for p in invalid:
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
+
     if return_average:
         return {
             "rates": _mean_or_nan(rates),
             "durations": _mean_or_nan(durations),
             "mean_speeds": _mean_or_nan(mean_speeds),
             "max_speeds": _mean_or_nan(max_speeds),
+            "fixation_rates": _mean_or_nan(fixation_rates),
+            "fixation_durations": _mean_or_nan(fixation_durations),
             "n_valid": len(rates),
         }
 
@@ -173,6 +255,8 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
         "durations": np.array(durations),
         "mean_speeds": np.array(mean_speeds),
         "max_speeds": np.array(max_speeds),
+        "fixation_rates": np.array(fixation_rates),
+        "fixation_durations": np.array(fixation_durations),
     }
 
 def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
@@ -183,12 +267,14 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
     durations = []
     mean_speeds = []
     max_speeds = []
+    fixation_rates = []
+    fixation_durations = []
     valid = []
     invalid = []
     window_label = f"{start_s}-{end_s}s"
 
     for p in range(1, n + 1):
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed = sf_pat.participant(
+        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )
         if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
@@ -199,6 +285,8 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
         durations.append(mean_duration)
         mean_speeds.append(mean_mean_speed)
         max_speeds.append(mean_max_speed)
+        fixation_rates.append(mean_fix_rate)
+        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -220,12 +308,30 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
         plt.tight_layout()
         plt.show()
 
+        fixation_plots = [
+            (f"Fixation Rate ({window_label})", fixation_rates),
+            (f"Fixation Duration ({window_label})", fixation_durations),
+        ]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, (title, data) in zip(axes.ravel(), fixation_plots):
+            ax.plot(valid, data, marker="o")
+            ax.set_title(title)
+            ax.set_xlabel("Participant")
+            ax.set_ylabel(title)
+            for p in invalid:
+                ax.axvline(p, ls="--", color="r", lw="0.5")
+
+        plt.tight_layout()
+        plt.show()
+
     if return_average:
         return {
             "rates": _mean_or_nan(rates),
             "durations": _mean_or_nan(durations),
             "mean_speeds": _mean_or_nan(mean_speeds),
             "max_speeds": _mean_or_nan(max_speeds),
+            "fixation_rates": _mean_or_nan(fixation_rates),
+            "fixation_durations": _mean_or_nan(fixation_durations),
             "n_valid": len(rates),
         }
 
@@ -234,6 +340,8 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
         "durations": np.array(durations),
         "mean_speeds": np.array(mean_speeds),
         "max_speeds": np.array(max_speeds),
+        "fixation_rates": np.array(fixation_rates),
+        "fixation_durations": np.array(fixation_durations),
     }
 
 def window_means(windows=((1, 4), (4, 7)), show_plots=False):

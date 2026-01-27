@@ -194,6 +194,8 @@ def participant(participant, show_stats=True, final=True, time_window=None):
     rejected = 0
     rates = []
     agg = {'duration_ms': [], 'mean_speed': [], 'max_speed': []}
+    fixation_rates = []
+    fixation_durations_ms = []
     for trial_num in range(1, n_trials+1):
         if show_stats: print(f"\n=== Trial {trial_num} ===")
         qc, stats, _ = trial(participant, trial_num, show_plot=False, show_stats=False, final=final)
@@ -215,6 +217,7 @@ def participant(participant, show_stats=True, final=True, time_window=None):
                 else:
                     rate = np.nan
             else:
+                window_len = trial_len_s
                 rate = len(stats) / trial_len_s
 
             rates.append(rate)
@@ -222,24 +225,53 @@ def participant(participant, show_stats=True, final=True, time_window=None):
             agg['mean_speed'].extend(stats['mean_speed'])
             agg['max_speed'].extend(stats['max_speed'])
 
+            if window_len > 0 and len(stats) >= 2:
+                stats_sorted = stats.sort_values('start_s')
+                starts = stats_sorted['start_s'].to_numpy()
+                ends = stats_sorted['end_s'].to_numpy()
+                gaps_s = starts[1:] - ends[:-1]
+                gaps_s = gaps_s[gaps_s >= 0]
+            else:
+                gaps_s = np.array([])
+
+            fixation_rates.append(len(gaps_s) / window_len if window_len > 0 else np.nan)
+            fixation_durations_ms.extend(gaps_s * 1000.0)
+
     if rates and agg['duration_ms']:
         mean_rate = np.mean(rates)
         mean_duration = np.nanmean(agg['duration_ms'])
         mean_mean_speed = np.nanmean(agg['mean_speed'])
         mean_max_speed = np.nanmean(agg['max_speed'])
+        mean_fix_rate = np.nanmean(fixation_rates) if fixation_rates else np.nan
+        mean_fix_duration = np.nanmean(fixation_durations_ms) if fixation_durations_ms else np.nan
         if show_stats:
             if time_window is not None:
                 start_s, end_s = time_window
                 window_label = f"{start_s}-{end_s}s"
-                print(f'\n[{window_label}] mean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+                print(
+                    f'\n[{window_label}] mean rate = {mean_rate:.2f}/sec, '
+                    f'mean duration = {mean_duration:.2f}ms, '
+                    f'avg mean speed = {mean_mean_speed:.2f}, '
+                    f'avg max speed = {mean_max_speed:.2f}, '
+                    f'fixation rate = {mean_fix_rate:.2f}/sec, '
+                    f'mean fixation = {mean_fix_duration:.2f}ms'
+                )
             else:
-                print(f'\nmean rate = {mean_rate:.2f}/sec, mean duration = {mean_duration:.2f}ms, avg mean speed = {mean_mean_speed:.2f}, avg max speed = {mean_max_speed:.2f}')
+                print(
+                    f'\nmean rate = {mean_rate:.2f}/sec, '
+                    f'mean duration = {mean_duration:.2f}ms, '
+                    f'avg mean speed = {mean_mean_speed:.2f}, '
+                    f'avg max speed = {mean_max_speed:.2f}, '
+                    f'fixation rate = {mean_fix_rate:.2f}/sec, '
+                    f'mean fixation = {mean_fix_duration:.2f}ms'
+                )
     else:
         mean_rate = mean_duration = mean_max_speed = mean_mean_speed = np.nan
+        mean_fix_rate = mean_fix_duration = np.nan
         if show_stats:
             print("\nNo valid saccades across trials (all rejected or empty).")
 
     if show_stats:
         print(f"\nTrials rejected: {rejected} / {n_trials}")
 
-    return mean_rate, mean_duration, mean_mean_speed, mean_max_speed
+    return mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration
