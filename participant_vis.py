@@ -5,6 +5,8 @@ from scipy import ndimage
 from scipy.stats import zscore
 from skimage import measure
 
+plt.rcParams["font.family"] = "Helvetica"
+
 def vis(participant, thr_z, merging_ms, show_plot=False):
     df = pd.read_csv(f'/Users/anji/Desktop/lab project/python_data/controls/participant_{participant}.csv')
     fs = 200 #sampling frequency, Hz

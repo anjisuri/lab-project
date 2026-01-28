@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import get_control_file, get_patient_file
 
+plt.rcParams["font.family"] = "Helvetica"
+
 '''
 - i want to find the time points when the saccades occur
 - and then plot the phase at that point

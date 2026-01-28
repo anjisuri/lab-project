@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import get_control_file
 
+plt.rcParams["font.family"] = "Helvetica"
+
 # plotting pupil dilation for a single trial (to identify eye blinks)
 def pupil_dilation(participant, trial_number):
     fs = 200  # sampling frequency Hz

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from scipy import ndimage, stats
 from skimage import measure
 
+plt.rcParams["font.family"] = "Helvetica"
+
 fs = 200 #sampling frequency, Hz
 
 # for i in range(1,2):
