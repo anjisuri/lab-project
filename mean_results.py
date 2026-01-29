@@ -57,22 +57,6 @@ def con_means(show_plots=True):
         plt.show()
 
         fixation_plots = [
-            ("Fixation Rate", "fixation_rates"),
-            ("Fixation Duration", "fixation_durations"),
-        ]
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-        for ax, (title, key) in zip(axes.ravel(), fixation_plots):
-            ax.hist(controls[key], bins=bins, alpha=0.6, label="Controls")
-            ax.hist(patients[key], bins=bins, alpha=0.6, label="Patients")
-            ax.set_title(title)
-            ax.set_xlabel(title)
-            ax.set_ylabel("Count")
-            ax.legend()
-
-        plt.tight_layout()
-        plt.show()
-
-        fixation_plots = [
             ("Fixation Rate", fixation_rates),
             ("Fixation Duration", fixation_durations),
         ]

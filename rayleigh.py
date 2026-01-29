@@ -188,3 +188,145 @@ def rayleigh_window_group_df(group="ctrl", hemi=0, fs=200, which="start", window
             )
     
     return pd.DataFrame(rows)
+
+def rayleigh_paired_window_ttests(df, windows=((1, 4), (4, 7))):
+    results = {}
+    if df.empty:
+        return results
+
+    window_a, window_b = windows
+    if window_a == window_b:
+        return results
+
+    for group in sorted(df["group"].unique()):
+        sub = df[df["group"] == group]
+        pivot = sub.pivot_table(
+            index="participant",
+            columns=["window_start_s", "window_end_s"],
+            values="r",
+            aggfunc="mean",
+        )
+        if window_a in pivot.columns and window_b in pivot.columns:
+            a = pivot[window_a].to_numpy()
+            b = pivot[window_b].to_numpy()
+            mask = np.isfinite(a) & np.isfinite(b)
+            if mask.sum() > 1:
+                test = stats.ttest_rel(a[mask], b[mask], nan_policy="omit")
+                results[group] = {
+                    "window_a": window_a,
+                    "window_b": window_b,
+                    "n": int(mask.sum()),
+                    "t": float(test.statistic),
+                    "p": float(test.pvalue),
+                }
+    return results
+
+
+def rayleigh_between_group_ttests(df, windows=((1, 4), (4, 7))):
+    results = {}
+    if df.empty:
+        return results
+
+    for window in windows:
+        start_s, end_s = window
+        a = df[
+            (df["group"] == "ctrl")
+            & (df["window_start_s"] == start_s)
+            & (df["window_end_s"] == end_s)
+        ]["r"].to_numpy()
+        b = df[
+            (df["group"] == "patient")
+            & (df["window_start_s"] == start_s)
+            & (df["window_end_s"] == end_s)
+        ]["r"].to_numpy()
+        if a.size > 1 and b.size > 1:
+            test = stats.ttest_ind(a, b, nan_policy="omit", equal_var=False)
+            results[window] = {
+                "window": window,
+                "n_ctrl": int(np.isfinite(a).sum()),
+                "n_patient": int(np.isfinite(b).sum()),
+                "t": float(test.statistic),
+                "p": float(test.pvalue),
+            }
+
+    return results
+
+
+def rayleigh_default_ttests(hemi=0, fs=200, which="start", windows=((1, 4), (4, 7)), final=False):
+    df_ctrl = rayleigh_window_group_df(
+        group="ctrl",
+        hemi=hemi,
+        fs=fs,
+        which=which,
+        windows=windows,
+        final=final,
+    )
+    df_pat = rayleigh_window_group_df(
+        group="patient",
+        hemi=hemi,
+        fs=fs,
+        which=which,
+        windows=windows,
+        final=final,
+    )
+    df = pd.concat([df_ctrl, df_pat], ignore_index=True)
+    return {
+        "df": df,
+        "within_group": rayleigh_paired_window_ttests(df, windows=windows),
+        "between_group": rayleigh_between_group_ttests(df, windows=windows),
+    }
+
+
+def paired_ttests(df):
+    results = {}
+    if df.empty:
+        return results
+
+    df = df.copy()
+    df["window_key"] = df["window_start_s"].astype(str) + "-" + df["window_end_s"].astype(str)
+    windows = sorted(df["window_key"].unique())
+    if len(windows) < 2:
+        return results
+
+    for group in sorted(df["group"].unique()):
+        sub = df[df["group"] == group]
+        pivot = sub.pivot_table(index="participant", columns="window_key", values="r", aggfunc="mean")
+        if all(w in pivot.columns for w in windows[:2]):
+            a = pivot[windows[0]].to_numpy()
+            b = pivot[windows[1]].to_numpy()
+            mask = np.isfinite(a) & np.isfinite(b)
+            if mask.sum() > 1:
+                test = stats.ttest_rel(a[mask], b[mask], nan_policy="omit")
+                results[group] = {
+                    "window_a": windows[0],
+                    "window_b": windows[1],
+                    "n": int(mask.sum()),
+                    "t": float(test.statistic),
+                    "p": float(test.pvalue),
+                }
+    return results
+
+
+def ind_ttests(df):
+    results = {}
+    if df.empty:
+        return results
+
+    df = df.copy()
+    df["window_key"] = df["window_start_s"].astype(str) + "-" + df["window_end_s"].astype(str)
+    windows = sorted(df["window_key"].unique())
+
+    for window in windows:
+        a = df[(df["group"] == "ctrl") & (df["window_key"] == window)]["r"].to_numpy()
+        b = df[(df["group"] == "patient") & (df["window_key"] == window)]["r"].to_numpy()
+        if a.size > 1 and b.size > 1:
+            test = stats.ttest_ind(a, b, nan_policy="omit", equal_var=False)
+            results[window] = {
+                "window": window,
+                "n_ctrl": int(np.isfinite(a).sum()),
+                "n_patient": int(np.isfinite(b).sum()),
+                "t": float(test.statistic),
+                "p": float(test.pvalue),
+            }
+
+    return results

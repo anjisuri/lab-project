@@ -14,11 +14,11 @@ metrics = ["rates", "durations", "mean_speeds", "max_speeds", "fixation_rates", 
 for metric in metrics:
     control_vals = controls[metric]
     patient_vals = patients[metric]
-    length = min(len(control_vals), len(patient_vals))
-    if length == 0:
+    if len(control_vals) == 0 or len(patient_vals) == 0:
         print(f"{metric}: not enough data for t-test")
         continue
-    result = stats.ttest_rel(control_vals[:length], patient_vals[:length], nan_policy="omit")
+    # Between-group comparison (independent samples)
+    result = stats.ttest_ind(control_vals, patient_vals, nan_policy="omit", equal_var=False)
     print(f"\n{metric}: {result}")
 
 
