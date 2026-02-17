@@ -83,8 +83,8 @@ def make_wide(ctrl_csv, pat_csv):
 def plot_cells(cells, title, ylabel, fname):
     groups = ['control', 'patient']
     conds = ['fixation', 'cue']
-    x = np.arange(2)
-    width = 0.34
+    x = np.arange(2) * 0.45
+    width = 0.12
 
     fig, ax = plt.subplots(figsize=(6.4, 4.2))
     for j, cond in enumerate(conds):
@@ -99,9 +99,11 @@ def plot_cells(cells, title, ylabel, fname):
 
     ax.set_xticks(x)
     ax.set_xticklabels(['Controls', 'Patients'])
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.legend(frameon=False)
+    ax.set_xlim(x[0] - 0.22, x[-1] + 0.22)
+    ax.margins(x=0.01)
+    ax.set_ylabel(ylabel, rotation=90, labelpad=14, va='center')
+    ax.set_title(title, loc='center', pad=10)
+    ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.02), frameon=False)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     plt.tight_layout()
