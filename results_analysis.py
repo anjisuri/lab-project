@@ -62,6 +62,8 @@ def window_metric_dfs():
     return {
         "saccade_frequency": make_df("rates"),
         "saccade_duration_ms": make_df("durations"),
+        "mean_saccade_speed": make_df("mean_speeds"),
+        "max_saccade_speed": make_df("max_speeds"),
         "fixation_frequency": make_df("fixation_rates"),
         "fixation_duration_ms": make_df("fixation_durations"),
     }
@@ -189,16 +191,56 @@ def main():
 
     analyses = {}
 
-    for k, wide in window_metric_dfs().items():
-        analyses[k] = split_plot_anova_equivalent(wide)
-        analyses[k]["wide"] = wide
-
+    # Gather wide-form dataframes from the windowed metrics and phase metrics
+    window_wides = window_metric_dfs()
     ph_start = phase_metric_df("start")
     ph_end = phase_metric_df("end")
-    analyses["phase_locking_saccade_onset"] = split_plot_anova_equivalent(ph_start)
-    analyses["phase_locking_saccade_onset"]["wide"] = ph_start
-    analyses["phase_locking_fixation_onset"] = split_plot_anova_equivalent(ph_end)
-    analyses["phase_locking_fixation_onset"]["wide"] = ph_end
+
+    # Helper to get subject sets by group from a wide dataframe
+    def subjects_by_group(df):
+        return {
+            "control": set(df[df["group"] == "control"]["subject"].tolist()),
+            "patient": set(df[df["group"] == "patient"]["subject"].tolist()),
+        }
+
+    # Non-phase subjects (union across all non-phase metrics)
+    nonphase_ctrl = set()
+    nonphase_pat = set()
+    for wide in window_wides.values():
+        s = subjects_by_group(wide)
+        nonphase_ctrl |= s["control"]
+        nonphase_pat |= s["patient"]
+
+    # Phase subjects (union across start/end)
+    phase_ctrl = subjects_by_group(ph_start)["control"] | subjects_by_group(ph_end)["control"]
+    phase_pat = subjects_by_group(ph_start)["patient"] | subjects_by_group(ph_end)["patient"]
+
+    # Intersection: only keep subjects present in both pipelines
+    common_ctrl = nonphase_ctrl & phase_ctrl
+    common_pat = nonphase_pat & phase_pat
+
+    def filter_common(df):
+        return df[
+            (
+                (df["group"] == "control") & df["subject"].isin(sorted(common_ctrl))
+            )
+            | (
+                (df["group"] == "patient") & df["subject"].isin(sorted(common_pat))
+            )
+        ].reset_index(drop=True)
+
+    # Apply filtering and run the split-plot ANOVA equivalent on the filtered sets
+    for k, wide in window_wides.items():
+        filtered = filter_common(wide)
+        analyses[k] = split_plot_anova_equivalent(filtered)
+        analyses[k]["wide"] = filtered
+
+    ph_start_f = filter_common(ph_start)
+    ph_end_f = filter_common(ph_end)
+    analyses["phase_locking_saccade_onset"] = split_plot_anova_equivalent(ph_start_f)
+    analyses["phase_locking_saccade_onset"]["wide"] = ph_start_f
+    analyses["phase_locking_fixation_onset"] = split_plot_anova_equivalent(ph_end_f)
+    analyses["phase_locking_fixation_onset"]["wide"] = ph_end_f
 
     print("OVERALL")
     for k, v in overall.items():
@@ -208,6 +250,8 @@ def main():
     plot_info = {
         "saccade_frequency": ("Saccade Frequency", "Frequency (Hz)", "saccade_frequency_bar.png"),
         "saccade_duration_ms": ("Saccade Duration", "Duration (ms)", "saccade_duration_bar.png"),
+        "mean_saccade_speed": ("Mean Saccade Speed", "Speed (deg/s)", "mean_saccade_speed_bar.png"),
+        "max_saccade_speed": ("Maximum Saccade Speed", "Speed (deg/s)", "max_saccade_speed_bar.png"),
         "fixation_frequency": ("Fixation Frequency", "Frequency (Hz)", "fixation_frequency_bar.png"),
         "fixation_duration_ms": ("Fixation Duration", "Duration (ms)", "fixation_duration_bar.png"),
         "phase_locking_saccade_onset": ("Phase Locking: Saccade Onset", "Resultant Vector Length (r)", "phase_saccade_onset_bar.png"),

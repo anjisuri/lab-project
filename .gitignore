@@ -6,6 +6,7 @@
 *.npy
 EyeData
 meg_data
+analysis_outputs
 *.png
 
 # testing
