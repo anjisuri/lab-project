@@ -4,9 +4,6 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from config import get_meg_ctrl, get_meg_pat
 
-plt.rcParams["font.family"] = "Helvetica"
-
-
 
 def theta_filter(data, fs=200, band=(1, 8), order=5, axis=1, method='gust'):
     b, a = signal.butter(order, band, btype='bandpass', fs=fs)

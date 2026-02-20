@@ -5,8 +5,6 @@ from skimage import measure
 import pandas as pd
 from config import get_control_file
 
-plt.rcParams["font.family"] = "Helvetica"
-
 def trial_vis(participant, trial_number):
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)

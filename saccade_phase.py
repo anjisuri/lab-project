@@ -4,14 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import get_control_file, get_patient_file
 
-plt.rcParams["font.family"] = "Helvetica"
-
-'''
-- i want to find the time points when the saccades occur
-- and then plot the phase at that point
-- so first plot is saccades overlaying the phase
-'''
-
 def sp(participant, trial, group='ctrl', hemi=0, fs=200, show_plot=True):
     eye = sf_con if group == 'ctrl' else sf_pat
     qc, valid_stats, _ = eye.trial(participant, trial, show_plot=False, show_stats=False)

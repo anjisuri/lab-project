@@ -5,8 +5,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-plt.rcParams["font.family"] = "Helvetica"
-
 def con_means(show_plots=True):
 
     dir_path = Path(__file__).parent.resolve() / 'EyeData/controls'
