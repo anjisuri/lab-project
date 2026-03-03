@@ -4,11 +4,10 @@ import sf_pat
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
+from config import list_control_ids, list_patient_ids
 
 def con_means(show_plots=True):
-
-    dir_path = Path(__file__).parent.resolve() / 'EyeData/controls'
-    n = len(os.listdir(dir_path))
+    control_ids = list_control_ids(exclude=True)
 
     rates = []
     durations = []
@@ -19,7 +18,7 @@ def con_means(show_plots=True):
     valid = []
     invalid = []
 
-    for p in range(1, n + 1):
+    for p in control_ids:
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False
         )
@@ -80,9 +79,7 @@ def con_means(show_plots=True):
     }
 
 def pat_means(show_plots=True):
-
-    dir_path = Path(__file__).parent.resolve() / 'EyeData/patients'
-    n = len(os.listdir(dir_path))
+    patient_ids = list_patient_ids()
 
     rates = []
     durations = []
@@ -93,7 +90,7 @@ def pat_means(show_plots=True):
     valid = []
     invalid = []
 
-    for p in range(1, n + 1):
+    for p in patient_ids:
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False
         )
@@ -159,8 +156,7 @@ def _mean_or_nan(values):
     return float(np.nanmean(values))
 
 def con_means_window(start_s, end_s, show_plots=True, return_average=True):
-    dir_path = Path(__file__).parent.resolve() / 'EyeData/controls'
-    n = len(os.listdir(dir_path))
+    control_ids = list_control_ids(exclude=True)
 
     rates = []
     durations = []
@@ -172,7 +168,7 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
     invalid = []
     window_label = f"{start_s}-{end_s}s"
 
-    for p in range(1, n + 1):
+    for p in control_ids:
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )
@@ -244,8 +240,7 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
     }
 
 def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
-    dir_path = Path(__file__).parent.resolve() / 'EyeData/patients'
-    n = len(os.listdir(dir_path))
+    patient_ids = list_patient_ids()
 
     rates = []
     durations = []
@@ -257,7 +252,7 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
     invalid = []
     window_label = f"{start_s}-{end_s}s"
 
-    for p in range(1, n + 1):
+    for p in patient_ids:
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )

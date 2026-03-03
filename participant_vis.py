@@ -7,7 +7,7 @@ from config import get_control_file, get_patient_file
 
 plt.rcParams["font.family"] = "Helvetica"
 
-def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl'):
+def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl', plot_trials=24):
     file_path = get_control_file(participant) if group == 'ctrl' else get_patient_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
     fs = 200 #sampling frequency, Hz
@@ -35,6 +35,8 @@ def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl'):
         speed_sigma = np.nanstd(pooled_speed)
     else:
         speed_mu, speed_sigma = np.nan, np.nan
+
+    plot_rows = []
 
     for i in range(1, trials + 1):
         trial_data = data[:, :, i - 1]
@@ -98,16 +100,59 @@ def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl'):
             'speed_var': np.nanvar(speed)
         })
 
-        # plot per trial (off by default)
+        # collect plotting data; render once at the end
         if show_plot:
-            movement = saccades
-            plt.figure(figsize=(10, 4))
-            plt.plot(time, speed_z)
-            plt.title(f'Instantaneous eye movement speed - trial {i}')
-            plt.xlabel('Time (s)')
-            plt.ylabel('Speed, z-scored (a.u.)')
-            plt.tight_layout()
-            plt.plot(time, movement * np.nanmax(speed_z))
+            peak = np.nanmax(speed_z) if np.isfinite(speed_z).any() else 1.0
+            plot_rows.append((i, time, speed_z, saccades * peak))
+
+    if show_plot and plot_rows:
+        n_cols = 4
+        page_size = max(1, int(plot_trials))
+        n_pages = int(np.ceil(len(plot_rows) / page_size))
+
+        for page_idx in range(n_pages):
+            start = page_idx * page_size
+            end = min((page_idx + 1) * page_size, len(plot_rows))
+            page_rows = plot_rows[start:end]
+            n_plot = len(page_rows)
+            n_rows = int(np.ceil(n_plot / n_cols))
+
+            # Compact sizing to keep each 24-trial page on-screen.
+            fig, axes = plt.subplots(
+                n_rows,
+                n_cols,
+                figsize=(14, min(9, 2.1 * n_rows)),
+                sharex=True,
+                sharey=False
+            )
+            axes = np.atleast_1d(axes).ravel()
+
+            for ax_idx in range(n_plot):
+                trial_num, time, speed_z, movement_trace = page_rows[ax_idx]
+                ax = axes[ax_idx]
+                ax.plot(time, speed_z, lw=0.8)
+                ax.plot(time, movement_trace, lw=0.8)
+                yvals = np.concatenate([
+                    speed_z[np.isfinite(speed_z)],
+                    movement_trace[np.isfinite(movement_trace)]
+                ])
+                if yvals.size > 0:
+                    ymin = np.min(yvals)
+                    ymax = np.max(yvals)
+                    if ymax > ymin:
+                        pad = 0.05 * (ymax - ymin)
+                        ax.set_ylim(ymin - pad, ymax + pad)
+                ax.set_title(f'Trial {trial_num}', fontsize=9)
+                ax.set_ylabel('z')
+
+            for ax in axes[n_plot:]:
+                ax.set_visible(False)
+
+            fig.suptitle(
+                f'Participant {participant} ({group}) - trials {page_rows[0][0]} to {page_rows[-1][0]}',
+                fontsize=12
+            )
+            fig.tight_layout(rect=[0, 0, 1, 0.96])
             plt.show()
 
     # after iterating all trials: concise output only

@@ -18,6 +18,36 @@ MEG_DIR = PROJECT_ROOT / 'meg_data'
 MEG_CTRLS = MEG_DIR / 'controls'
 MEG_PAT = MEG_DIR / 'patients'
 
+# IDs to exclude from group-level analyses.
+EXCLUDED_CONTROL_IDS = {10}
+EXCLUDED_PATIENT_IDS = set()
+
+def list_control_ids(exclude=True):
+    ids = []
+    for path in CONTROLS_DIR.glob('ctrl_*.npy'):
+        stem = path.stem  # ctrl_<id>
+        try:
+            pid = int(stem.split('_')[1])
+        except (IndexError, ValueError):
+            continue
+        if exclude and pid in EXCLUDED_CONTROL_IDS:
+            continue
+        ids.append(pid)
+    return sorted(ids)
+
+def list_patient_ids(exclude=True):
+    ids = []
+    for path in PATIENTS_DIR.glob('pat_*.npy'):
+        stem = path.stem  # pat_<id>
+        try:
+            pid = int(stem.split('_')[1])
+        except (IndexError, ValueError):
+            continue
+        if exclude and pid in EXCLUDED_PATIENT_IDS:
+            continue
+        ids.append(pid)
+    return sorted(ids)
+
 def get_control_file(participant):
     """Get path to control participant data file"""
     return CONTROLS_DIR / f'ctrl_{participant}.npy'
