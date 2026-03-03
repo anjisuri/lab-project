@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage, stats
+from scipy import ndimage
 from skimage import measure
 
 plt.rcParams["font.family"] = "Helvetica"
@@ -26,10 +26,19 @@ x = trial['x']
 y = trial['y']
 pupil = trial['pupil']
 
+# participant-level speed normalization parameters (across all trials)
+all_speed = np.sqrt(np.diff(df['x']) ** 2 + np.diff(df['y']) ** 2)
+all_speed = all_speed[np.isfinite(all_speed)]
+mu = np.nanmean(all_speed) if all_speed.size else np.nan
+sigma = np.nanstd(all_speed) if all_speed.size else np.nan
+
 xdiff = np.diff(x) ** 2
 ydiff = np.diff(y) ** 2
 speed = np.sqrt(xdiff + ydiff)
-speed_z = stats.zscore(speed)
+if np.isfinite(mu) and np.isfinite(sigma) and sigma > 0:
+    speed_z = (speed - mu) / sigma
+else:
+    speed_z = np.full_like(speed, np.nan, dtype=float)
 time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
 
 plt.figure(figsize=(10,4))

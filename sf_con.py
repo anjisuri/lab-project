@@ -1,9 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage, stats
+from scipy import ndimage
 from skimage import measure
 import pandas as pd
 from config import get_control_file
+
+def _participant_speed_stats(data):
+    n_trials = data.shape[2]
+    speed_chunks = []
+    for trial_idx in range(n_trials):
+        trial_data = data[:, :, trial_idx]
+        df = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
+        blink_mask = df['pupil'] < -4.0
+        blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
+        df.loc[blink_mask, ['x', 'y']] = np.nan
+        speed = np.sqrt(np.diff(df['x']) ** 2 + np.diff(df['y']) ** 2)
+        speed = speed[np.isfinite(speed)]
+        if speed.size > 0:
+            speed_chunks.append(speed)
+
+    if speed_chunks:
+        pooled_speed = np.concatenate(speed_chunks)
+        return np.nanmean(pooled_speed), np.nanstd(pooled_speed)
+    return np.nan, np.nan
 
 def trial_vis(participant, trial_number):
     file_path = get_control_file(participant)
@@ -33,7 +52,7 @@ def trial_vis(participant, trial_number):
 
     plt.show()
 
-def trial(participant, trial_number, show_plot=True, show_stats=True, final=True):
+def trial(participant, trial_number, show_plot=True, show_stats=True, final=True, speed_mu=None, speed_sigma=None):
     # loading
     file_path = get_control_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
@@ -62,7 +81,13 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
     xdiff = np.diff(x) ** 2
     ydiff = np.diff(y) ** 2
     speed = np.sqrt(xdiff + ydiff)
-    speed_z = stats.zscore(speed, nan_policy = 'omit')
+    if speed_mu is None or speed_sigma is None:
+        speed_mu, speed_sigma = _participant_speed_stats(data)
+
+    if np.isfinite(speed_sigma) and speed_sigma > 0 and np.isfinite(speed_mu):
+        speed_z = (speed - speed_mu) / speed_sigma
+    else:
+        speed_z = np.full_like(speed, np.nan, dtype=float)
     time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
 
     if show_plot:
@@ -191,6 +216,9 @@ def participant(participant, show_stats=True, final=True, time_window=None):
     fs = 200
     trial_len_s = data.shape[1] / fs
 
+    # z-scoring across participant
+    speed_mu, speed_sigma = _participant_speed_stats(data)
+
     rejected = 0
     rates = []
     agg = {'duration_ms': [], 'mean_speed': [], 'max_speed': []}
@@ -198,7 +226,15 @@ def participant(participant, show_stats=True, final=True, time_window=None):
     fixation_durations_ms = []
     for trial_num in range(1, n_trials+1):
         if show_stats: print(f"\n=== Trial {trial_num} ===")
-        qc, stats, _ = trial(participant, trial_num, show_plot=False, show_stats=False, final=final)
+        qc, stats, _ = trial(
+            participant,
+            trial_num,
+            show_plot=False,
+            show_stats=False,
+            final=final,
+            speed_mu=speed_mu,
+            speed_sigma=speed_sigma
+        )
         if len(qc) > 0: 
             if show_stats: print(f"Trial {trial_num} rejected due to:", qc)
             rejected += 1

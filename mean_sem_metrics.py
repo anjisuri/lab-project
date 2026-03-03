@@ -10,14 +10,14 @@ c = con_means(show_plots=False)
 p = pat_means(show_plots=False)
 
 sacc_rate = np.concatenate([c["rates"], p["rates"]])                       # Hz
-sacc_dur_s = np.concatenate([c["durations"], p["durations"]])   # ms
+sacc_dur_ms = np.concatenate([c["durations"], p["durations"]])   # ms
 fix_rate  = np.concatenate([c["fixation_rates"], p["fixation_rates"]])     # Hz
-fix_dur_s = np.concatenate([c["fixation_durations"], p["fixation_durations"]])  # ms
+fix_dur_ms = np.concatenate([c["fixation_durations"], p["fixation_durations"]])  # ms
 
 print("Saccade rate (Hz):", np.nanmean(sacc_rate), "±", sem(sacc_rate))
-print("Saccade duration (s):", np.nanmean(sacc_dur_s), "±", sem(sacc_dur_s))
+print("Saccade duration (ms):", np.nanmean(sacc_dur_ms), "±", sem(sacc_dur_ms))
 print("Fixation rate (Hz):", np.nanmean(fix_rate), "±", sem(fix_rate))
-print("Fixation duration (s):", np.nanmean(fix_dur_s), "±", sem(fix_dur_s))
+print("Fixation duration (ms):", np.nanmean(fix_dur_ms), "±", sem(fix_dur_ms))
 
 # saccade speed metrics
 mean_speed = np.concatenate([c["mean_speeds"], p["mean_speeds"]])
