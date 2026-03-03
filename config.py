@@ -19,7 +19,7 @@ MEG_CTRLS = MEG_DIR / 'controls'
 MEG_PAT = MEG_DIR / 'patients'
 
 # IDs to exclude from group-level analyses.
-EXCLUDED_CONTROL_IDS = {10}
+EXCLUDED_CONTROL_IDS = set()
 EXCLUDED_PATIENT_IDS = set()
 
 def list_control_ids(exclude=True):

@@ -190,11 +190,11 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
             'flat_y': stdy < 0.1,
             'x_noise': stdx > 4,
             'y_noise': stdy > 4,
-            'no_saccades': False,
+            # 'no_saccades': False,
         }
     else:
         qc = {
-            'no_saccades': True,
+            # 'no_saccades': True,
         }
     
     if show_stats & len(valid_stats) > 0:
