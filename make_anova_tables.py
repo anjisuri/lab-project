@@ -89,6 +89,8 @@ def export_phase_locking(which, out_name):
 # required 4 metrics
 export_metric("rates", "saccade_frequency")
 export_metric("durations", "saccade_duration_ms")
+export_metric("mean_speeds", "mean_saccade_speed")
+export_metric("max_speeds", "max_saccade_speed")
 export_metric("fixation_rates", "fixation_frequency")
 export_metric("fixation_durations", "fixation_duration_ms")
 

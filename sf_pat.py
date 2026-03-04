@@ -24,6 +24,25 @@ def _participant_speed_stats(data):
         return np.nanmean(pooled_speed), np.nanstd(pooled_speed)
     return np.nan, np.nan
 
+def _participant_pupil_stats(data):
+    n_trials = data.shape[2]
+    pupil_chunks = []
+    for trial_idx in range(n_trials):
+        trial_data = data[:, :, trial_idx]
+        df = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
+        blink_mask = df['pupil'] < -4.0
+        blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
+        df.loc[blink_mask, ['pupil']] = np.nan
+        pupil = df['pupil'].to_numpy(dtype=float)
+        pupil = pupil[np.isfinite(pupil)]
+        if pupil.size > 0:
+            pupil_chunks.append(pupil)
+
+    if pupil_chunks:
+        pooled_pupil = np.concatenate(pupil_chunks)
+        return np.nanmean(pooled_pupil), np.nanstd(pooled_pupil)
+    return np.nan, np.nan
+
 def trial_vis(participant, trial_number):
     file_path = get_patient_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
@@ -52,7 +71,17 @@ def trial_vis(participant, trial_number):
 
     plt.show()
 
-def trial(participant, trial_number, show_plot=True, show_stats=True, final=True, speed_mu=None, speed_sigma=None):
+def trial(
+    participant,
+    trial_number,
+    show_plot=True,
+    show_stats=True,
+    final=True,
+    speed_mu=None,
+    speed_sigma=None,
+    pupil_mu=None,
+    pupil_sigma=None,
+):
     # loading
     file_path = get_patient_file(participant)
     data = np.load(file_path)  # shape: (channels, time, trials)
@@ -83,11 +112,17 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
     speed = np.sqrt(xdiff + ydiff)
     if speed_mu is None or speed_sigma is None:
         speed_mu, speed_sigma = _participant_speed_stats(data)
+    if pupil_mu is None or pupil_sigma is None:
+        pupil_mu, pupil_sigma = _participant_pupil_stats(data)
 
     if np.isfinite(speed_sigma) and speed_sigma > 0 and np.isfinite(speed_mu):
         speed_z = (speed - speed_mu) / speed_sigma
     else:
         speed_z = np.full_like(speed, np.nan, dtype=float)
+    if np.isfinite(pupil_sigma) and pupil_sigma > 0 and np.isfinite(pupil_mu):
+        pupil_z = (pupil - pupil_mu) / pupil_sigma
+    else:
+        pupil_z = np.full_like(pupil, np.nan, dtype=float)
     time = np.arange(len(speed)) / fs  # seconds (fs = 200Hz)
 
     if show_plot:
@@ -177,8 +212,8 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
     if not no_saccades:
         stdx = np.nanstd(x)
         stdy = np.nanstd(y)
-        stdpup = np.nanstd(pupil)
-        pupil_jitter = np.nanstd(np.diff(pupil))
+        stdpup = np.nanstd(pupil_z)
+        pupil_jitter = np.nanstd(np.diff(pupil_z))
         # speed_peak = np.nanpercentile(np.abs(speed_z), 99)
 
         qc = {
@@ -204,7 +239,7 @@ def trial(participant, trial_number, show_plot=True, show_stats=True, final=True
         print(
             f'rate = {trial_rate:.2f}, mean_duration = {mean_duration:.2f}ms, '
             f'mean_speed = {mean_speed:.2f}, max_speed = {max_speed:.2f}, '
-            f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup = {stdpup:.2f}, '
+            f'stdx = {stdx:.2f}, stdy = {stdy:.2f}, stdpup_z = {stdpup:.2f}, '
             f'blink% = {np.mean(blink_mask)*100:.1f}%'
         )
     return [reason for reason, flag in qc.items() if flag], valid_stats, trial_rate
@@ -218,6 +253,7 @@ def participant(participant, show_stats=True, final=True, time_window=None):
 
     # z-scoring across participant
     speed_mu, speed_sigma = _participant_speed_stats(data)
+    pupil_mu, pupil_sigma = _participant_pupil_stats(data)
 
     rejected = 0
     rates = []
@@ -233,7 +269,9 @@ def participant(participant, show_stats=True, final=True, time_window=None):
             show_stats=False,
             final=final,
             speed_mu=speed_mu,
-            speed_sigma=speed_sigma
+            speed_sigma=speed_sigma,
+            pupil_mu=pupil_mu,
+            pupil_sigma=pupil_sigma,
         )
         if len(qc) > 0: 
             if show_stats: print(f"Trial {trial_num} rejected due to:", qc)
