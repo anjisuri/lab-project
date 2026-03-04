@@ -21,7 +21,14 @@ def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl', plot_tria
     for trial_idx in range(trials):
         trial_data = data[:, :, trial_idx]
         df_trial = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
-        blink_mask = df_trial['pupil'] < -4.0
+        pupil_raw = df_trial['pupil'].to_numpy(dtype=float)
+        p_mu = np.nanmean(pupil_raw)
+        p_sigma = np.nanstd(pupil_raw)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            pupil_z = (pupil_raw - p_mu) / p_sigma
+        else:
+            pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+        blink_mask = pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         df_trial.loc[blink_mask, ['x', 'y']] = np.nan
         speed = np.sqrt(np.diff(df_trial['x']) ** 2 + np.diff(df_trial['y']) ** 2)
@@ -41,7 +48,14 @@ def vis(participant, thr_z, merging_ms, show_plot=False, group='ctrl', plot_tria
     for i in range(1, trials + 1):
         trial_data = data[:, :, i - 1]
         trial1 = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
-        blink_mask = trial1['pupil'] < -4.0
+        pupil_raw = trial1['pupil'].to_numpy(dtype=float)
+        p_mu = np.nanmean(pupil_raw)
+        p_sigma = np.nanstd(pupil_raw)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            pupil_z = (pupil_raw - p_mu) / p_sigma
+        else:
+            pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+        blink_mask = pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         trial1.loc[blink_mask, ['x', 'y', 'pupil']] = np.nan
         x = trial1['x']

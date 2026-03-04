@@ -22,7 +22,7 @@ def con_means(show_plots=True):
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False
         )
-        if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
+        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
             invalid.append(p)
             continue
         valid.append(p)
@@ -94,7 +94,7 @@ def pat_means(show_plots=True):
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False
         )
-        if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
+        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
             invalid.append(p)
             continue
         valid.append(p)
@@ -155,6 +155,12 @@ def _mean_or_nan(values):
         return np.nan
     return float(np.nanmean(values))
 
+def _finite_count(values):
+    arr = np.asarray(values, dtype=float)
+    if arr.size == 0:
+        return 0
+    return int(np.isfinite(arr).sum())
+
 def con_means_window(start_s, end_s, show_plots=True, return_average=True):
     control_ids = list_control_ids(exclude=True)
 
@@ -172,7 +178,7 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )
-        if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
+        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
             invalid.append(p)
             continue
         valid.append(p)
@@ -227,7 +233,8 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
             "max_speeds": _mean_or_nan(max_speeds),
             "fixation_rates": _mean_or_nan(fixation_rates),
             "fixation_durations": _mean_or_nan(fixation_durations),
-            "n_valid": len(rates),
+            "n_valid": _finite_count(rates),
+            "valid_ids": np.array(valid, dtype=int),
         }
 
     return {
@@ -237,6 +244,7 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
         "max_speeds": np.array(max_speeds),
         "fixation_rates": np.array(fixation_rates),
         "fixation_durations": np.array(fixation_durations),
+        "valid_ids": np.array(valid, dtype=int),
     }
 
 def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
@@ -256,7 +264,7 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
         mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
             p, show_stats=False, final=False, time_window=(start_s, end_s)
         )
-        if any(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed]):
+        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
             invalid.append(p)
             continue
         valid.append(p)
@@ -311,7 +319,8 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
             "max_speeds": _mean_or_nan(max_speeds),
             "fixation_rates": _mean_or_nan(fixation_rates),
             "fixation_durations": _mean_or_nan(fixation_durations),
-            "n_valid": len(rates),
+            "n_valid": _finite_count(rates),
+            "valid_ids": np.array(valid, dtype=int),
         }
 
     return {
@@ -321,6 +330,7 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
         "max_speeds": np.array(max_speeds),
         "fixation_rates": np.array(fixation_rates),
         "fixation_durations": np.array(fixation_durations),
+        "valid_ids": np.array(valid, dtype=int),
     }
 
 def window_means(windows=((1, 4), (4, 7)), show_plots=False):

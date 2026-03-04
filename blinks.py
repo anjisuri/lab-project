@@ -10,7 +10,13 @@ def _participant_pupil_stats(data):
     n_trials = data.shape[2]
     for trial_idx in range(n_trials):
         trial_pupil = data[2, :, trial_idx].astype(float)
-        blink_mask = trial_pupil < -4.0
+        p_mu = np.nanmean(trial_pupil)
+        p_sigma = np.nanstd(trial_pupil)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            trial_pupil_z = (trial_pupil - p_mu) / p_sigma
+        else:
+            trial_pupil_z = np.full_like(trial_pupil, np.nan, dtype=float)
+        blink_mask = trial_pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         clean = trial_pupil.copy()
         clean[blink_mask] = np.nan

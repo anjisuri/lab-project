@@ -11,7 +11,14 @@ def _participant_speed_stats(data):
     for trial_idx in range(n_trials):
         trial_data = data[:, :, trial_idx]
         df = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
-        blink_mask = df['pupil'] < -4.0
+        pupil_raw = df['pupil'].to_numpy(dtype=float)
+        p_mu = np.nanmean(pupil_raw)
+        p_sigma = np.nanstd(pupil_raw)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            pupil_z = (pupil_raw - p_mu) / p_sigma
+        else:
+            pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+        blink_mask = pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         df.loc[blink_mask, ['x', 'y']] = np.nan
         speed = np.sqrt(np.diff(df['x']) ** 2 + np.diff(df['y']) ** 2)
@@ -30,7 +37,14 @@ def _participant_pupil_stats(data):
     for trial_idx in range(n_trials):
         trial_data = data[:, :, trial_idx]
         df = pd.DataFrame(trial_data.T, columns=['x', 'y', 'pupil'])
-        blink_mask = df['pupil'] < -4.0
+        pupil_raw = df['pupil'].to_numpy(dtype=float)
+        p_mu = np.nanmean(pupil_raw)
+        p_sigma = np.nanstd(pupil_raw)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            pupil_z = (pupil_raw - p_mu) / p_sigma
+        else:
+            pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+        blink_mask = pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         df.loc[blink_mask, ['pupil']] = np.nan
         pupil = df['pupil'].to_numpy(dtype=float)
@@ -93,8 +107,17 @@ def trial(
     samples = data.shape[1]
     trials = data.shape[2]
 
-    # blink exclusion
-    blink_mask = df['pupil'] < -4.0 # True = blink, False = valid
+    if speed_mu is None or speed_sigma is None:
+        speed_mu, speed_sigma = _participant_speed_stats(data)
+    if pupil_mu is None or pupil_sigma is None:
+        pupil_mu, pupil_sigma = _participant_pupil_stats(data)
+    # blink exclusion on z-scored pupil
+    pupil_raw = df['pupil'].to_numpy(dtype=float)
+    if np.isfinite(pupil_sigma) and pupil_sigma > 0 and np.isfinite(pupil_mu):
+        pupil_z_raw = (pupil_raw - pupil_mu) / pupil_sigma
+    else:
+        pupil_z_raw = np.full_like(pupil_raw, np.nan, dtype=float)
+    blink_mask = pupil_z_raw < -2.0
     blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
     time = np.arange(samples) / fs
     df_clean = df.copy()
@@ -110,10 +133,6 @@ def trial(
     xdiff = np.diff(x) ** 2
     ydiff = np.diff(y) ** 2
     speed = np.sqrt(xdiff + ydiff)
-    if speed_mu is None or speed_sigma is None:
-        speed_mu, speed_sigma = _participant_speed_stats(data)
-    if pupil_mu is None or pupil_sigma is None:
-        pupil_mu, pupil_sigma = _participant_pupil_stats(data)
 
     if np.isfinite(speed_sigma) and speed_sigma > 0 and np.isfinite(speed_mu):
         speed_z = (speed - speed_mu) / speed_sigma

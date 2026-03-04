@@ -18,7 +18,14 @@ def _participant_speed_stats(data):
     for trial_idx in range(n_trials):
         trial_data = data[:, :, trial_idx]
         df = pd.DataFrame(trial_data.T, columns=["x", "y", "pupil"])
-        blink_mask = df["pupil"] < -4.0
+        pupil_raw = df["pupil"].to_numpy(dtype=float)
+        p_mu = np.nanmean(pupil_raw)
+        p_sigma = np.nanstd(pupil_raw)
+        if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+            pupil_z = (pupil_raw - p_mu) / p_sigma
+        else:
+            pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+        blink_mask = pupil_z < -2.0
         blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
         df.loc[blink_mask, ["x", "y"]] = np.nan
         speed = np.sqrt(np.diff(df["x"]) ** 2 + np.diff(df["y"]) ** 2)
@@ -42,7 +49,14 @@ def vis_control_trial(participant_id=14, trial_number=39, thr_z=1.5, merge_ms=10
     trial_data = data[:, :, trial_number - 1]
     df = pd.DataFrame(trial_data.T, columns=["x", "y", "pupil"])
 
-    blink_mask = df["pupil"] < -4.0
+    pupil_raw = df["pupil"].to_numpy(dtype=float)
+    p_mu = np.nanmean(pupil_raw)
+    p_sigma = np.nanstd(pupil_raw)
+    if np.isfinite(p_mu) and np.isfinite(p_sigma) and p_sigma > 0:
+        pupil_z = (pupil_raw - p_mu) / p_sigma
+    else:
+        pupil_z = np.full_like(pupil_raw, np.nan, dtype=float)
+    blink_mask = pupil_z < -2.0
     blink_mask = ndimage.binary_dilation(blink_mask, iterations=15)
     df_clean = df.copy()
     df_clean.loc[blink_mask, ["x", "y", "pupil"]] = np.nan

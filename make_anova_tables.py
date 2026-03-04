@@ -17,15 +17,41 @@ pat_cue = pat_means_window(4, 7, show_plots=False, return_average=False)
 def export_metric(key, out_name):
     rows = []
 
-    for i, (a, b) in enumerate(zip(con_fix[key], con_cue[key]), start=1):
+    ctrl_fix = dict(zip(con_fix["valid_ids"], con_fix[key]))
+    ctrl_cue = dict(zip(con_cue["valid_ids"], con_cue[key]))
+    ctrl_common = sorted(set(ctrl_fix) & set(ctrl_cue))
+    for pid in ctrl_common:
+        a = ctrl_fix[pid]
+        b = ctrl_cue[pid]
         if np.isfinite(a) and np.isfinite(b):
-            rows.append({"subject": f"C{i:02d}", "group": "control", "fixation": float(a), "cue": float(b)})
+            rows.append(
+                {
+                    "subject": f"C{int(pid):02d}",
+                    "group": "control",
+                    "fixation": float(a),
+                    "cue": float(b),
+                }
+            )
 
-    for i, (a, b) in enumerate(zip(pat_fix[key], pat_cue[key]), start=1):
+    pat_fix_map = dict(zip(pat_fix["valid_ids"], pat_fix[key]))
+    pat_cue_map = dict(zip(pat_cue["valid_ids"], pat_cue[key]))
+    pat_common = sorted(set(pat_fix_map) & set(pat_cue_map))
+    for pid in pat_common:
+        a = pat_fix_map[pid]
+        b = pat_cue_map[pid]
         if np.isfinite(a) and np.isfinite(b):
-            rows.append({"subject": f"P{i:02d}", "group": "patient", "fixation": float(a), "cue": float(b)})
+            rows.append(
+                {
+                    "subject": f"P{int(pid):02d}",
+                    "group": "patient",
+                    "fixation": float(a),
+                    "cue": float(b),
+                }
+            )
 
     df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values(["group", "subject"]).reset_index(drop=True)
     df.to_csv(f"{OUT_DIR}/{out_name}.csv", index=False)
     print(f"Wrote {OUT_DIR}/{out_name}.csv  (n={len(df)})")
 
