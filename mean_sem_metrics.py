@@ -1,27 +1,30 @@
+from pathlib import Path
 import numpy as np
-from mean_results import con_means, pat_means
+import pandas as pd
+
+ANOVA_DIR = Path("analysis_outputs/anova_inputs")
 
 def sem(x):
-    x = np.asarray(x, dtype=float)
-    x = x[np.isfinite(x)]
-    return np.std(x, ddof=1) / np.sqrt(len(x))
+    arr = np.asarray(x, dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) < 2:
+        return np.nan
+    return np.std(arr, ddof=1) / np.sqrt(len(arr))
 
-c = con_means(show_plots=False)
-p = pat_means(show_plots=False)
+def _print_metric(label, csv_name, unit):
+    df = pd.read_csv(ANOVA_DIR / csv_name)
+    fix_vals = df["fixation"].to_numpy(dtype=float)
+    cue_vals = df["cue"].to_numpy(dtype=float)
+    pooled = np.concatenate([fix_vals, cue_vals])
+    print(f"{label} ({unit})")
+    print(f"  Fixation: {np.nanmean(fix_vals)} ± {sem(fix_vals)} (n={len(df)})")
+    print(f"  Cue: {np.nanmean(cue_vals)} ± {sem(cue_vals)} (n={len(df)})")
+    print(f"  Pooled (fix+cue): {np.nanmean(pooled)} ± {sem(pooled)} (n={len(pooled)})")
 
-sacc_rate = np.concatenate([c["rates"], p["rates"]])                       # Hz
-sacc_dur_ms = np.concatenate([c["durations"], p["durations"]])   # ms
-fix_rate  = np.concatenate([c["fixation_rates"], p["fixation_rates"]])     # Hz
-fix_dur_ms = np.concatenate([c["fixation_durations"], p["fixation_durations"]])  # ms
-
-print("Saccade rate (Hz):", np.nanmean(sacc_rate), "±", sem(sacc_rate))
-print("Saccade duration (ms):", np.nanmean(sacc_dur_ms), "±", sem(sacc_dur_ms))
-print("Fixation rate (Hz):", np.nanmean(fix_rate), "±", sem(fix_rate))
-print("Fixation duration (ms):", np.nanmean(fix_dur_ms), "±", sem(fix_dur_ms))
-
-# saccade speed metrics
-mean_speed = np.concatenate([c["mean_speeds"], p["mean_speeds"]])
-max_speed  = np.concatenate([c["max_speeds"], p["max_speeds"]])
-
-print("Mean saccade speed:", np.nanmean(mean_speed), "±", sem(mean_speed))
-print("Peak saccade speed:", np.nanmean(max_speed), "±", sem(max_speed))
+print("Windowed means ± SEM (ANOVA-matched paired cohort):")
+_print_metric("Saccade rate", "saccade_frequency.csv", "Hz")
+_print_metric("Saccade duration", "saccade_duration_ms.csv", "ms")
+_print_metric("Fixation rate", "fixation_frequency.csv", "Hz")
+_print_metric("Fixation duration", "fixation_duration_ms.csv", "ms")
+_print_metric("Mean saccade speed", "mean_saccade_speed.csv", "z")
+_print_metric("Peak saccade speed", "max_saccade_speed.csv", "z")
