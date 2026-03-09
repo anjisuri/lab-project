@@ -6,32 +6,63 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import list_control_ids, list_patient_ids
 
-def con_means(show_plots=True):
-    control_ids = list_control_ids(exclude=True)
+METRIC_KEYS = (
+    "rates",
+    "durations",
+    "mean_speeds",
+    "max_speeds",
+    "fixation_rates",
+    "fixation_durations",
+)
 
-    rates = []
-    durations = []
-    mean_speeds = []
-    max_speeds = []
-    fixation_rates = []
-    fixation_durations = []
-    valid = []
+
+def _collect_group_metrics(participant_ids, participant_fn, time_window=None):
+    rows = []
     invalid = []
 
-    for p in control_ids:
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
-            p, show_stats=False, final=False
-        )
-        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
-            invalid.append(p)
+    for pid in participant_ids:
+        kwargs = {"show_stats": False, "final": False}
+        if time_window is not None:
+            kwargs["time_window"] = time_window
+        vals = participant_fn(pid, **kwargs)
+        arr = np.asarray(vals, dtype=float)
+
+        # Universal-N rule: drop participant from all metrics if any metric is NaN.
+        if np.all(np.isnan(arr)) or np.any(np.isnan(arr)):
+            invalid.append(pid)
             continue
-        valid.append(p)
-        rates.append(mean_rate)
-        durations.append(mean_duration)
-        mean_speeds.append(mean_mean_speed)
-        max_speeds.append(mean_max_speed)
-        fixation_rates.append(mean_fix_rate)
-        fixation_durations.append(mean_fix_duration)
+
+        rows.append((pid, *vals))
+
+    valid = [row[0] for row in rows]
+    if rows:
+        mat = np.asarray([row[1:] for row in rows], dtype=float)
+    else:
+        mat = np.empty((0, len(METRIC_KEYS)), dtype=float)
+
+    return {
+        "valid": valid,
+        "invalid": invalid,
+        "rates": mat[:, 0],
+        "durations": mat[:, 1],
+        "mean_speeds": mat[:, 2],
+        "max_speeds": mat[:, 3],
+        "fixation_rates": mat[:, 4],
+        "fixation_durations": mat[:, 5],
+    }
+
+
+def con_means(show_plots=True):
+    control_ids = list_control_ids(exclude=True)
+    metrics = _collect_group_metrics(control_ids, sf_con.participant)
+    valid = metrics["valid"]
+    invalid = metrics["invalid"]
+    rates = metrics["rates"]
+    durations = metrics["durations"]
+    mean_speeds = metrics["mean_speeds"]
+    max_speeds = metrics["max_speeds"]
+    fixation_rates = metrics["fixation_rates"]
+    fixation_durations = metrics["fixation_durations"]
 
     if show_plots:
         plots = [
@@ -70,40 +101,27 @@ def con_means(show_plots=True):
         plt.show()
     
     return {
-        "rates": np.array(rates),
-        "durations": np.array(durations),
-        "mean_speeds": np.array(mean_speeds),
-        "max_speeds": np.array(max_speeds),
-        "fixation_rates": np.array(fixation_rates),
-        "fixation_durations": np.array(fixation_durations),
+        "rates": np.array(rates, dtype=float),
+        "durations": np.array(durations, dtype=float),
+        "mean_speeds": np.array(mean_speeds, dtype=float),
+        "max_speeds": np.array(max_speeds, dtype=float),
+        "fixation_rates": np.array(fixation_rates, dtype=float),
+        "fixation_durations": np.array(fixation_durations, dtype=float),
+        "valid_ids": np.array(valid, dtype=int),
+        "n_valid": int(len(valid)),
     }
 
 def pat_means(show_plots=True):
     patient_ids = list_patient_ids()
-
-    rates = []
-    durations = []
-    mean_speeds = []
-    max_speeds = []
-    fixation_rates = []
-    fixation_durations = []
-    valid = []
-    invalid = []
-
-    for p in patient_ids:
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
-            p, show_stats=False, final=False
-        )
-        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
-            invalid.append(p)
-            continue
-        valid.append(p)
-        rates.append(mean_rate)
-        durations.append(mean_duration)
-        mean_speeds.append(mean_mean_speed)
-        max_speeds.append(mean_max_speed)
-        fixation_rates.append(mean_fix_rate)
-        fixation_durations.append(mean_fix_duration)
+    metrics = _collect_group_metrics(patient_ids, sf_pat.participant)
+    valid = metrics["valid"]
+    invalid = metrics["invalid"]
+    rates = metrics["rates"]
+    durations = metrics["durations"]
+    mean_speeds = metrics["mean_speeds"]
+    max_speeds = metrics["max_speeds"]
+    fixation_rates = metrics["fixation_rates"]
+    fixation_durations = metrics["fixation_durations"]
 
     if show_plots:
         plots = [
@@ -142,12 +160,14 @@ def pat_means(show_plots=True):
         plt.show()
     
     return {
-        "rates": np.array(rates),
-        "durations": np.array(durations),
-        "mean_speeds": np.array(mean_speeds),
-        "max_speeds": np.array(max_speeds),
-        "fixation_rates": np.array(fixation_rates),
-        "fixation_durations": np.array(fixation_durations),
+        "rates": np.array(rates, dtype=float),
+        "durations": np.array(durations, dtype=float),
+        "mean_speeds": np.array(mean_speeds, dtype=float),
+        "max_speeds": np.array(max_speeds, dtype=float),
+        "fixation_rates": np.array(fixation_rates, dtype=float),
+        "fixation_durations": np.array(fixation_durations, dtype=float),
+        "valid_ids": np.array(valid, dtype=int),
+        "n_valid": int(len(valid)),
     }
 
 def _mean_or_nan(values):
@@ -163,31 +183,16 @@ def _finite_count(values):
 
 def con_means_window(start_s, end_s, show_plots=True, return_average=True):
     control_ids = list_control_ids(exclude=True)
-
-    rates = []
-    durations = []
-    mean_speeds = []
-    max_speeds = []
-    fixation_rates = []
-    fixation_durations = []
-    valid = []
-    invalid = []
+    metrics = _collect_group_metrics(control_ids, sf_con.participant, time_window=(start_s, end_s))
+    valid = metrics["valid"]
+    invalid = metrics["invalid"]
+    rates = metrics["rates"]
+    durations = metrics["durations"]
+    mean_speeds = metrics["mean_speeds"]
+    max_speeds = metrics["max_speeds"]
+    fixation_rates = metrics["fixation_rates"]
+    fixation_durations = metrics["fixation_durations"]
     window_label = f"{start_s}-{end_s}s"
-
-    for p in control_ids:
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_con.participant(
-            p, show_stats=False, final=False, time_window=(start_s, end_s)
-        )
-        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
-            invalid.append(p)
-            continue
-        valid.append(p)
-        rates.append(mean_rate)
-        durations.append(mean_duration)
-        mean_speeds.append(mean_mean_speed)
-        max_speeds.append(mean_max_speed)
-        fixation_rates.append(mean_fix_rate)
-        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -233,47 +238,32 @@ def con_means_window(start_s, end_s, show_plots=True, return_average=True):
             "max_speeds": _mean_or_nan(max_speeds),
             "fixation_rates": _mean_or_nan(fixation_rates),
             "fixation_durations": _mean_or_nan(fixation_durations),
-            "n_valid": _finite_count(rates),
+            "n_valid": int(len(valid)),
             "valid_ids": np.array(valid, dtype=int),
         }
 
     return {
-        "rates": np.array(rates),
-        "durations": np.array(durations),
-        "mean_speeds": np.array(mean_speeds),
-        "max_speeds": np.array(max_speeds),
-        "fixation_rates": np.array(fixation_rates),
-        "fixation_durations": np.array(fixation_durations),
+        "rates": np.array(rates, dtype=float),
+        "durations": np.array(durations, dtype=float),
+        "mean_speeds": np.array(mean_speeds, dtype=float),
+        "max_speeds": np.array(max_speeds, dtype=float),
+        "fixation_rates": np.array(fixation_rates, dtype=float),
+        "fixation_durations": np.array(fixation_durations, dtype=float),
         "valid_ids": np.array(valid, dtype=int),
     }
 
 def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
     patient_ids = list_patient_ids()
-
-    rates = []
-    durations = []
-    mean_speeds = []
-    max_speeds = []
-    fixation_rates = []
-    fixation_durations = []
-    valid = []
-    invalid = []
+    metrics = _collect_group_metrics(patient_ids, sf_pat.participant, time_window=(start_s, end_s))
+    valid = metrics["valid"]
+    invalid = metrics["invalid"]
+    rates = metrics["rates"]
+    durations = metrics["durations"]
+    mean_speeds = metrics["mean_speeds"]
+    max_speeds = metrics["max_speeds"]
+    fixation_rates = metrics["fixation_rates"]
+    fixation_durations = metrics["fixation_durations"]
     window_label = f"{start_s}-{end_s}s"
-
-    for p in patient_ids:
-        mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration = sf_pat.participant(
-            p, show_stats=False, final=False, time_window=(start_s, end_s)
-        )
-        if all(np.isnan(x) for x in [mean_rate, mean_duration, mean_mean_speed, mean_max_speed, mean_fix_rate, mean_fix_duration]):
-            invalid.append(p)
-            continue
-        valid.append(p)
-        rates.append(mean_rate)
-        durations.append(mean_duration)
-        mean_speeds.append(mean_mean_speed)
-        max_speeds.append(mean_max_speed)
-        fixation_rates.append(mean_fix_rate)
-        fixation_durations.append(mean_fix_duration)
 
     if show_plots:
         plots = [
@@ -319,17 +309,17 @@ def pat_means_window(start_s, end_s, show_plots=True, return_average=True):
             "max_speeds": _mean_or_nan(max_speeds),
             "fixation_rates": _mean_or_nan(fixation_rates),
             "fixation_durations": _mean_or_nan(fixation_durations),
-            "n_valid": _finite_count(rates),
+            "n_valid": int(len(valid)),
             "valid_ids": np.array(valid, dtype=int),
         }
 
     return {
-        "rates": np.array(rates),
-        "durations": np.array(durations),
-        "mean_speeds": np.array(mean_speeds),
-        "max_speeds": np.array(max_speeds),
-        "fixation_rates": np.array(fixation_rates),
-        "fixation_durations": np.array(fixation_durations),
+        "rates": np.array(rates, dtype=float),
+        "durations": np.array(durations, dtype=float),
+        "mean_speeds": np.array(mean_speeds, dtype=float),
+        "max_speeds": np.array(max_speeds, dtype=float),
+        "fixation_rates": np.array(fixation_rates, dtype=float),
+        "fixation_durations": np.array(fixation_durations, dtype=float),
         "valid_ids": np.array(valid, dtype=int),
     }
 

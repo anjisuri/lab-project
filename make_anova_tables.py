@@ -14,12 +14,23 @@ con_cue = con_means_window(4, 7, show_plots=False, return_average=False)
 pat_fix = pat_means_window(1, 4, show_plots=False, return_average=False)
 pat_cue = pat_means_window(4, 7, show_plots=False, return_average=False)
 
+
+def _saccade_common_ids():
+    ctrl_fix_ids = set(con_fix["valid_ids"])
+    ctrl_cue_ids = set(con_cue["valid_ids"])
+    pat_fix_ids = set(pat_fix["valid_ids"])
+    pat_cue_ids = set(pat_cue["valid_ids"])
+    return sorted(ctrl_fix_ids & ctrl_cue_ids), sorted(pat_fix_ids & pat_cue_ids)
+
+
+SACC_CTRL_COMMON, SACC_PAT_COMMON = _saccade_common_ids()
+
 def export_metric(key, out_name):
     rows = []
 
     ctrl_fix = dict(zip(con_fix["valid_ids"], con_fix[key]))
     ctrl_cue = dict(zip(con_cue["valid_ids"], con_cue[key]))
-    ctrl_common = sorted(set(ctrl_fix) & set(ctrl_cue))
+    ctrl_common = SACC_CTRL_COMMON
     for pid in ctrl_common:
         a = ctrl_fix[pid]
         b = ctrl_cue[pid]
@@ -35,7 +46,7 @@ def export_metric(key, out_name):
 
     pat_fix_map = dict(zip(pat_fix["valid_ids"], pat_fix[key]))
     pat_cue_map = dict(zip(pat_cue["valid_ids"], pat_cue[key]))
-    pat_common = sorted(set(pat_fix_map) & set(pat_cue_map))
+    pat_common = SACC_PAT_COMMON
     for pid in pat_common:
         a = pat_fix_map[pid]
         b = pat_cue_map[pid]
@@ -62,9 +73,12 @@ def export_phase_locking(which, out_name):
     df_pat = rayleigh_window_group_df(group="patient", which=which, windows=windows, final=False)
     df = pd.concat([df_ctrl, df_pat], ignore_index=True)
 
-    # ANOVA-ready wide table on subject-level resultant vector length (r).
+    # ANOVA-ready wide table on subject-level resultant vector length (r)
     rows = []
-    for group_code, group_label, prefix in [("ctrl", "control", "C"), ("patient", "patient", "P")]:
+    for group_code, group_label, prefix, allowed_ids in [
+        ("ctrl", "control", "C", set(SACC_CTRL_COMMON)),
+        ("patient", "patient", "P", set(SACC_PAT_COMMON)),
+    ]:
         sub = df[df["group"] == group_code]
         pivot_r = sub.pivot_table(
             index="participant",
@@ -73,6 +87,8 @@ def export_phase_locking(which, out_name):
             aggfunc="mean",
         )
         for participant in sorted(pivot_r.index):
+            if participant not in allowed_ids:
+                continue
             fix_key = (1, 4)
             cue_key = (4, 7)
             if fix_key not in pivot_r.columns or cue_key not in pivot_r.columns:
@@ -93,24 +109,6 @@ def export_phase_locking(which, out_name):
     wide_path = f"{OUT_DIR}/{out_name}.csv"
     wide_df.to_csv(wide_path, index=False)
     print(f"Wrote {wide_path}  (n={len(wide_df)})")
-
-    # Optional detailed long table with r/z/p and phase count n per window.
-    detail = df.copy()
-    detail["subject"] = detail.apply(
-        lambda r: f"{'C' if r['group'] == 'ctrl' else 'P'}{int(r['participant']):02d}",
-        axis=1,
-    )
-    detail["group"] = detail["group"].map({"ctrl": "control", "patient": "patient"})
-    detail["window"] = detail.apply(
-        lambda r: "fixation" if (r["window_start_s"], r["window_end_s"]) == (1, 4) else "cue",
-        axis=1,
-    )
-    detail = detail[["subject", "group", "window", "r", "z", "p", "n"]].sort_values(
-        ["group", "subject", "window"]
-    )
-    detail_path = f"{OUT_DIR}/{out_name}_detail.csv"
-    detail.to_csv(detail_path, index=False)
-    print(f"Wrote {detail_path}  (rows={len(detail)})")
 
 # required 4 metrics
 export_metric("rates", "saccade_frequency")

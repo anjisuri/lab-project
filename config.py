@@ -19,11 +19,11 @@ MEG_CTRLS = MEG_DIR / 'controls'
 MEG_PAT = MEG_DIR / 'patients'
 
 # IDs to exclude from group-level analyses.
-EXCLUDED_CONTROL_IDS = set()
+EXCLUDED_CONTROL_IDS = {7, 25, 5, 12, 9}
 EXCLUDED_PATIENT_IDS = set()
 
 def list_control_ids(exclude=True):
-    ids = []
+    ids = set()
     for path in CONTROLS_DIR.glob('ctrl_*.npy'):
         stem = path.stem  # ctrl_<id>
         try:
@@ -32,7 +32,7 @@ def list_control_ids(exclude=True):
             continue
         if exclude and pid in EXCLUDED_CONTROL_IDS:
             continue
-        ids.append(pid)
+        ids.add(pid)
     return sorted(ids)
 
 def list_patient_ids(exclude=True):
