@@ -2,7 +2,6 @@
 Configuration file for lab-project
 Handles file paths to work across different devices
 """
-import os
 from pathlib import Path
 
 # Get the project root directory (where this config.py file is located)

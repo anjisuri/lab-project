@@ -1,7 +1,5 @@
-import os
 import sf_con
 import sf_pat
-from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from config import list_control_ids, list_patient_ids
