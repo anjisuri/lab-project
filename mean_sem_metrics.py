@@ -29,7 +29,7 @@ def metric(metric_name):
         fix_vals = sub["fixation"].to_numpy(dtype=float)
         cue_vals = sub["cue"].to_numpy(dtype=float)
         out[group] = {
-            "fixation": f"{np.nanmean(fix_vals):.3f} ± {sem(fix_vals):.3f}",
-            "cue": f"{np.nanmean(cue_vals):.3f} ± {sem(cue_vals):.3f}",
+            "fixation": f"{np.nanmean(fix_vals):.4f} ± {sem(fix_vals):.4f}",
+            "cue": f"{np.nanmean(cue_vals):.4f} ± {sem(cue_vals):.4f}",
         }
     return out

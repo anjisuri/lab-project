@@ -129,7 +129,3 @@ def vis_control_trial(participant_id=14, trial_number=39, thr_z=1.5, merge_ms=10
     print(f"number of saccades = {len(stats_df)}")
     print(stats_df[["label", "start_s", "end_s", "duration_ms", "mean_speed", "max_speed"]])
     return stats_df
-
-
-if __name__ == "__main__":
-    vis_control_trial(participant_id=10, trial_number=1)
