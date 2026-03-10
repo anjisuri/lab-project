@@ -11,20 +11,25 @@ def sem(x):
         return np.nan
     return np.std(arr, ddof=1) / np.sqrt(len(arr))
 
-def _print_metric(label, csv_name, unit):
-    df = pd.read_csv(ANOVA_DIR / csv_name)
-    fix_vals = df["fixation"].to_numpy(dtype=float)
-    cue_vals = df["cue"].to_numpy(dtype=float)
-    pooled = np.concatenate([fix_vals, cue_vals])
-    print(f"{label} ({unit})")
-    print(f"  Fixation: {np.nanmean(fix_vals)} ± {sem(fix_vals)} (n={len(df)})")
-    print(f"  Cue: {np.nanmean(cue_vals)} ± {sem(cue_vals)} (n={len(df)})")
-    print(f"  Pooled (fix+cue): {np.nanmean(pooled)} ± {sem(pooled)} (n={len(pooled)})")
+# metric_name options:
+# - "saccade_frequency"
+# - "saccade_duration_ms"
+# - "fixation_frequency"
+# - "fixation_duration_ms"
+# - "mean_saccade_speed"
+# - "max_saccade_speed"
+# - "phase_locking_saccade_onset_r"
+# - "phase_locking_fixation_onset_r"
 
-print("Windowed means ± SEM (ANOVA-matched paired cohort):")
-_print_metric("Saccade rate", "saccade_frequency.csv", "Hz")
-_print_metric("Saccade duration", "saccade_duration_ms.csv", "ms")
-_print_metric("Fixation rate", "fixation_frequency.csv", "Hz")
-_print_metric("Fixation duration", "fixation_duration_ms.csv", "ms")
-_print_metric("Mean saccade speed", "mean_saccade_speed.csv", "z")
-_print_metric("Peak saccade speed", "max_saccade_speed.csv", "z")
+def metric(metric_name):
+    df = pd.read_csv(ANOVA_DIR / f"{str(metric_name)}.csv")
+    out = {}
+    for group in ("control", "patient"):
+        sub = df[df["group"] == group]
+        fix_vals = sub["fixation"].to_numpy(dtype=float)
+        cue_vals = sub["cue"].to_numpy(dtype=float)
+        out[group] = {
+            "fixation": f"{np.nanmean(fix_vals):.3f} ± {sem(fix_vals):.3f}",
+            "cue": f"{np.nanmean(cue_vals):.3f} ± {sem(cue_vals):.3f}",
+        }
+    return out
