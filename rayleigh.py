@@ -233,7 +233,7 @@ def rayleigh_between_group_ttests(df, windows=((1, 4), (4, 7))):
             & (df["window_end_s"] == end_s)
         ]["r"].to_numpy()
         b = df[
-            (df["group"] == "patient")
+            (df["group"] == "pat")
             & (df["window_start_s"] == start_s)
             & (df["window_end_s"] == end_s)
         ]["r"].to_numpy()
@@ -260,7 +260,7 @@ def rayleigh_default_ttests(hemi=0, fs=200, which="start", windows=((1, 4), (4, 
         final=final,
     )
     df_pat = rayleigh_window_group_df(
-        group="patient",
+        group="pat",
         hemi=hemi,
         fs=fs,
         which=which,
@@ -316,7 +316,7 @@ def ind_ttests(df):
 
     for window in windows:
         a = df[(df["group"] == "ctrl") & (df["window_key"] == window)]["r"].to_numpy()
-        b = df[(df["group"] == "patient") & (df["window_key"] == window)]["r"].to_numpy()
+        b = df[(df["group"] == "pat") & (df["window_key"] == window)]["r"].to_numpy()
         if a.size > 1 and b.size > 1:
             test = stats.ttest_ind(a, b, nan_policy="omit", equal_var=False)
             results[window] = {

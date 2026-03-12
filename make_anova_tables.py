@@ -18,7 +18,7 @@ pat_cue = pat_means_window(4, 7, show_plots=False, return_average=False)
 
 COMMON_IDS = get_common_participant_ids_by_group(windows=((1, 4), (4, 7)))
 SACC_CTRL_COMMON = COMMON_IDS["ctrl"]
-SACC_PAT_COMMON = COMMON_IDS["patient"]
+SACC_PAT_COMMON = COMMON_IDS["pat"]
 
 def export_metric(key, out_name):
     rows = []
@@ -65,14 +65,14 @@ def export_metric(key, out_name):
 def export_phase_locking(which, out_name):
     windows = ((1, 4), (4, 7))
     df_ctrl = rayleigh_window_group_df(group="ctrl", which=which, windows=windows, final=False)
-    df_pat = rayleigh_window_group_df(group="patient", which=which, windows=windows, final=False)
+    df_pat = rayleigh_window_group_df(group="pat", which=which, windows=windows, final=False)
     df = pd.concat([df_ctrl, df_pat], ignore_index=True)
 
     # ANOVA-ready wide table on subject-level resultant vector length (r)
     rows = []
     for group_code, group_label, prefix, allowed_ids in [
         ("ctrl", "control", "C", set(SACC_CTRL_COMMON)),
-        ("patient", "patient", "P", set(SACC_PAT_COMMON)),
+        ("pat", "patient", "P", set(SACC_PAT_COMMON)),
     ]:
         sub = df[df["group"] == group_code]
         pivot_r = sub.pivot_table(
