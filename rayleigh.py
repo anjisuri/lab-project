@@ -5,7 +5,7 @@ from scipy import stats
 import sf_con
 import sf_pat
 from meg_filtering import hilbert
-from config import get_control_file, get_patient_file
+from config import get_control_file, get_patient_file, get_common_participant_ids
 
 
 def resultant_vector_length(phases):
@@ -102,9 +102,9 @@ def rayleigh_window_stats(participant, group="ctrl", hemi=0, fs=200, which="star
 
 
 def rayleigh_window_group_stats(group="ctrl", hemi=0, fs=200, which="start", windows=((1, 4), (4, 7)), final=False):
-    last = 26 if group == "ctrl" else 18
     results = {window: [] for window in windows}
-    for participant in range(1, last + 1):
+    participants = get_common_participant_ids(group=group, windows=windows)
+    for participant in participants:
         for window in windows:
             stats_row = rayleigh_window_stats(
                 participant,

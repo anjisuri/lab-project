@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from mean_results import con_means_window, pat_means_window
 from rayleigh import rayleigh_window_group_df
+from config import get_common_participant_ids_by_group
 
 OUT_DIR = "analysis_outputs/anova_inputs"
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -15,15 +16,9 @@ pat_fix = pat_means_window(1, 4, show_plots=False, return_average=False)
 pat_cue = pat_means_window(4, 7, show_plots=False, return_average=False)
 
 
-def _saccade_common_ids():
-    ctrl_fix_ids = set(con_fix["valid_ids"])
-    ctrl_cue_ids = set(con_cue["valid_ids"])
-    pat_fix_ids = set(pat_fix["valid_ids"])
-    pat_cue_ids = set(pat_cue["valid_ids"])
-    return sorted(ctrl_fix_ids & ctrl_cue_ids), sorted(pat_fix_ids & pat_cue_ids)
-
-
-SACC_CTRL_COMMON, SACC_PAT_COMMON = _saccade_common_ids()
+COMMON_IDS = get_common_participant_ids_by_group(windows=((1, 4), (4, 7)))
+SACC_CTRL_COMMON = COMMON_IDS["ctrl"]
+SACC_PAT_COMMON = COMMON_IDS["patient"]
 
 def export_metric(key, out_name):
     rows = []
