@@ -12,6 +12,8 @@ ALL_METRICS = (
     "max_saccade_speed",
     "phase_locking_saccade_onset_r",
     "phase_locking_fixation_onset_r",
+    "phase_locking_saccade_onset_r_right",
+    "phase_locking_fixation_onset_r_right",
 )
 
 def sem(x):
