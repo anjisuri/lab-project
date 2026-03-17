@@ -62,10 +62,22 @@ def export_metric(key, out_name):
     print(f"Wrote {OUT_DIR}/{out_name}.csv  (n={len(df)})")
 
 
-def export_phase_locking(which, out_name):
+def export_phase_locking(which, out_name, hemi=0):
     windows = ((1, 4), (4, 7))
-    df_ctrl = rayleigh_window_group_df(group="ctrl", which=which, windows=windows, final=False)
-    df_pat = rayleigh_window_group_df(group="pat", which=which, windows=windows, final=False)
+    df_ctrl = rayleigh_window_group_df(
+        group="ctrl",
+        hemi=hemi,
+        which=which,
+        windows=windows,
+        final=False,
+    )
+    df_pat = rayleigh_window_group_df(
+        group="pat",
+        hemi=hemi,
+        which=which,
+        windows=windows,
+        final=False,
+    )
     df = pd.concat([df_ctrl, df_pat], ignore_index=True)
 
     # ANOVA-ready wide table on subject-level resultant vector length (r)
@@ -114,5 +126,10 @@ export_metric("fixation_rates", "fixation_frequency")
 export_metric("fixation_durations", "fixation_duration_ms")
 
 # phase-locking (resultant vector length r) for both onset types
-export_phase_locking(which="start", out_name="phase_locking_saccade_onset_r")
-export_phase_locking(which="end", out_name="phase_locking_fixation_onset_r")
+# left hemisphere
+export_phase_locking(which="start", out_name="phase_locking_saccade_onset_r", hemi=0)
+export_phase_locking(which="end", out_name="phase_locking_fixation_onset_r", hemi=0)
+
+# right hemisphere
+export_phase_locking(which="start", out_name="phase_locking_saccade_onset_r_right", hemi=1)
+export_phase_locking(which="end", out_name="phase_locking_fixation_onset_r_right", hemi=1)
