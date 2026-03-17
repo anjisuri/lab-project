@@ -12,7 +12,7 @@ for group in ("ctrl", "pat"):
     for window in windows:
         all_phases = []
         for pid in ids:
-            p = phase_dist_window(pid, group=group, which=which, window=window, final=False)
+            p = phase_dist_window(pid, group=group, which=which, window=window, final=False, hemi = 1)
             p = np.asarray(p)
             all_phases.extend(p[np.isfinite(p)])
         all_phases = np.asarray(all_phases)
