@@ -3,8 +3,10 @@ from mean_results import con_means, pat_means, con_means_window, pat_means_windo
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import pandas as pd
+import numpy as np
+from pathlib import Path
 
-# SACCADE STATS
+# EYE MOVEMENT STATS
 
 controls = con_means(show_plots=False)
 patients = pat_means(show_plots=False)
@@ -59,3 +61,33 @@ def anova(DV):
     anova_result = sm.stats.anova_lm(model, type=2)
     
     print(df, '\n', anova_result)
+
+
+#paired t-test, uses fixation duration vals from ANOVA input table 
+def paired_fixation_duration_posthoc(final=True):
+    table_path = Path("analysis_outputs/anova_inputs/fixation_duration_ms.csv")
+    df = pd.read_csv(table_path)
+
+    fix_vals = df["fixation"].to_numpy(dtype=float)
+    cue_vals = df["cue"].to_numpy(dtype=float)
+    mask = np.isfinite(fix_vals) & np.isfinite(cue_vals)
+    fix_vals = fix_vals[mask]
+    cue_vals = cue_vals[mask]
+
+    if len(fix_vals) < 2:
+        out = {"n": int(len(fix_vals)), "t": np.nan, "df": np.nan, "p": np.nan}
+        if final:
+            print(out)
+        return out
+
+    test = stats.ttest_rel(fix_vals, cue_vals, nan_policy="omit")
+    out = {
+        "n": int(len(fix_vals)),
+        "t": float(test.statistic),
+        "df": int(len(fix_vals) - 1),
+        "p": float(test.pvalue),
+        "mean_fixation": float(np.mean(fix_vals)),
+        "mean_cue": float(np.mean(cue_vals)),
+        "mean_diff_fix_minus_cue": float(np.mean(fix_vals - cue_vals)),
+    }
+    return out
