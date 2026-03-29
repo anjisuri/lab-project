@@ -4,12 +4,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
+from pycircstat2.descriptive import circ_mean_ci
+from pycircstat2.hypothesis import one_sample_test
 
-# Avoid Matplotlib cache warnings from indirect imports in this pipeline.
-MPL_CACHE = Path('analysis_outputs') / '.mpl_cache'
-MPL_CACHE.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault('MPLCONFIGDIR', str(MPL_CACHE.resolve()))
 
 from config import get_common_participant_ids
 from rayleigh import phase_dist_window, rayleigh_test
@@ -27,35 +24,46 @@ def circular_mean(phases):
 
 
 def circular_distance(a, b):
-    """Signed circular distance a-b in [-pi, pi]."""
+    # circular distance a-b in [-pi, pi]
     return float(np.angle(np.exp(1j * (a - b))))
 
 
-def v_test_against_zero(angles):
-    """One-sample circular V-test toward 0 radians."""
+def one_sample_test_against_zero(angles):
     angles = np.asarray(angles, dtype=float)
     angles = angles[np.isfinite(angles)]
     n = angles.size
     if n == 0:
-        return {"n": 0, "mu": np.nan, "r_bar": np.nan, "v": np.nan, "u": np.nan, "p": np.nan}
+        return {"n": 0, "mu": np.nan, "r_bar": np.nan, "reject": np.nan, "ci_lb": np.nan, "ci_ub": np.nan}
 
     c = np.sum(np.cos(angles))
     s = np.sum(np.sin(angles))
     mu = np.arctan2(s, c)
     r_bar = np.sqrt(c * c + s * s) / n
 
-    # V-test with specified mean direction mu0 = 0
-    v = r_bar * np.cos(mu)
-    u = v * np.sqrt(2.0 * n)
-    p = 1.0 - norm.cdf(u)
+    try:
+        try:
+            one_sample_res = one_sample_test(angle=0.0, alpha=angles)
+        except ValueError:
+            ci_method = "bootstrap" if n < 25 else "dispersion"
+            lb, ub = circ_mean_ci(alpha=angles, method=ci_method)
+            one_sample_res = one_sample_test(angle=0.0, lb=lb, ub=ub)
+        ci = getattr(one_sample_res, "ci", (np.nan, np.nan))
+        reject = getattr(one_sample_res, "reject", np.nan)
+        status = "ok"
+    except ValueError:
+        # extremely low resultant length: mean direction/CI is not defined.
+        ci = (np.nan, np.nan)
+        reject = np.nan
+        status = "undefined_mean_direction"
 
     return {
         "n": int(n),
         "mu": float(mu),
         "r_bar": float(r_bar),
-        "v": float(v),
-        "u": float(u),
-        "p": float(np.clip(p, 0.0, 1.0)),
+        "reject": bool(reject) if not pd.isna(reject) else np.nan,
+        "ci_lb": float(ci[0]),
+        "ci_ub": float(ci[1]),
+        "status": status,
     }
 
 
@@ -105,19 +113,20 @@ def run_phase_difference_test(which='start', hemi=0):
         sub = per_subject if grp == 'all' else per_subject[per_subject['group'] == grp]
         deltas = sub['delta_cue_minus_fix'].to_numpy(dtype=float) if not sub.empty else np.array([])
 
-        vtest = v_test_against_zero(deltas)
-        z, p_rayleigh = rayleigh_test(deltas) if vtest['n'] > 0 else (np.nan, np.nan)
+        one_sample = one_sample_test_against_zero(deltas)
+        z, p_rayleigh = rayleigh_test(deltas) if one_sample['n'] > 0 else (np.nan, np.nan)
 
         test_rows.append(
             {
                 'hemi': int(hemi),
                 'group': grp,
-                'n': int(vtest['n']),
-                'mean_delta': float(vtest['mu']),
-                'r_bar': float(vtest['r_bar']),
-                'v': float(vtest['v']),
-                'u': float(vtest['u']),
-                'p_vtest_against_0': float(vtest['p']),
+                'n': int(one_sample['n']),
+                'mean_delta': float(one_sample['mu']),
+                'r_bar': float(one_sample['r_bar']),
+                'one_sample_reject_mean_eq_0': one_sample['reject'],
+                'one_sample_ci_lb': float(one_sample['ci_lb']),
+                'one_sample_ci_ub': float(one_sample['ci_ub']),
+                'one_sample_status': one_sample['status'],
                 'rayleigh_z': float(z),
                 'rayleigh_p': float(p_rayleigh),
             }
@@ -148,7 +157,7 @@ def save_and_print(which='start', hemis=(0, 1)):
         print(f'\n=== Hemisphere {hemi} | Per-participant circular mean difference (cue - fixation) ===')
         print(per_subject.to_string(index=False) if not per_subject.empty else 'No participant rows')
 
-        print(f'\n=== Hemisphere {hemi} | Circular test: is difference centered at 0? ===')
+        print(f'\n=== Hemisphere {hemi} | one_sample_test: is mean difference equal to 0? ===')
         print(tests_df.to_string(index=False))
 
         print(f'\nSaved: {per_subject_path}')
@@ -168,7 +177,7 @@ def save_and_print(which='start', hemis=(0, 1)):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Compute per-participant circular mean phase differences (cue-fix) and test vs 0 using a circular test.'
+        description='Compute per-participant circular mean phase differences (cue-fix) and test mean=0 with pycircstat2 one_sample_test.'
     )
     parser.add_argument('--which', choices=['start', 'end'], default='start', help='start=saccade onset, end=fixation onset')
     parser.add_argument('--hemi', choices=['0', '1', 'both'], default='both', help='hemisphere: 0 (left), 1 (right), or both')

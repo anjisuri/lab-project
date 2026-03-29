@@ -5,3 +5,4 @@ scipy
 mne
 scikit-image
 statsmodels
+pycircstat2

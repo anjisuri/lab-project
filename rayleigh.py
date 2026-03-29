@@ -271,7 +271,43 @@ def rayleigh_default_ttests(hemi=0, fs=200, which="start", windows=((1, 4), (4, 
     return {
         "df": df,
         "within_group": rayleigh_paired_window_ttests(df, windows=windows),
+        "within_all": pooled_paired_window_ttest(df, windows=windows),
         "between_group": rayleigh_between_group_ttests(df, windows=windows),
+    }
+
+
+def pooled_paired_window_ttest(df, windows=((1, 4), (4, 7))):
+    if df.empty:
+        return {}
+
+    window_a, window_b = windows
+    pivot = (
+        df.assign(subject_uid=df["group"].astype(str) + "_" + df["participant"].astype(str))
+        .pivot_table(
+            index="subject_uid",
+            columns=["window_start_s", "window_end_s"],
+            values="r",
+            aggfunc="mean",
+        )
+    )
+    if window_a not in pivot.columns or window_b not in pivot.columns:
+        return {}
+
+    a = pivot[window_a].to_numpy(dtype=float)
+    b = pivot[window_b].to_numpy(dtype=float)
+    mask = np.isfinite(a) & np.isfinite(b)
+    if mask.sum() < 2:
+        return {}
+
+    test = stats.ttest_rel(a[mask], b[mask], nan_policy="omit")
+    return {
+        "window_a": window_a,
+        "window_b": window_b,
+        "n": int(mask.sum()),
+        "t": float(test.statistic),
+        "p": float(test.pvalue),
+        "mean_a": float(np.nanmean(a[mask])),
+        "mean_b": float(np.nanmean(b[mask])),
     }
 
 
